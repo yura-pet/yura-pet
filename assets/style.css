@@ -211,3 +211,5 @@ input:focus,select:focus,textarea:focus{border-color:var(--pink);box-shadow:0 0 
 .choice .c-inc{display:grid;gap:1px;margin-top:6px;font-size:14px;line-height:1.55;color:var(--text)}
 .choice .c-inc-t{font-size:12px;font-weight:700;color:#8a6e65;letter-spacing:.08em}
 .choice .c-inc span{display:block}
+.choice .c-inc{display:none}
+.choice:has(input:checked) .c-inc{display:grid}

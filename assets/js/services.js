@@ -14,7 +14,7 @@ function withBundles(plans, skip = []) {
   plans.filter(p => !skip.includes(p.key)).forEach(p => out.push({
     key: p.key + "-art", label: p.label + "＋似顏繪", meta: (p.meta ? p.meta + "・" : "") + "手繪似顏繪含框含運",
     price: p.bundlePrice || p.price + BUNDLE_EXTRA, orig: p.price + ART_ALONE, bundle: true,
-    includes: [...(p.includes || []), "手繪似顏繪一幅（含畫框、含運費）"]
+    includes: [...(p.includes || []), "手繪似顏繪（含框含運）"]
   }));
   return out;
 }
@@ -38,9 +38,9 @@ export const SERVICES = {
     detailUrl: "guide-general.html",
     slot: "required",
     plans: withBundles([
-      { key: "single", label: "單寵溝通（1 隻）", meta: "20 分鐘", price: 1680, includes: ["1 隻毛孩・溝通 20 分鐘", "視訊、語音溝通提供錄音紀錄；文字溝通整理成文字回覆"] },
-      { key: "double", label: "多寵溝通（2 隻）", meta: "30 分鐘", price: 2380, includes: ["同家庭 2 隻毛孩・共 30 分鐘，依需求分配", "視訊、語音溝通提供錄音紀錄；文字溝通整理成文字回覆"] },
-      { key: "triple", label: "三寵溝通（3 隻）", meta: "40 分鐘", price: 3080, includes: ["同家庭 3 隻毛孩・共 40 分鐘，依需求分配", "視訊、語音溝通提供錄音紀錄；文字溝通整理成文字回覆"] }
+      { key: "single", label: "單寵溝通（1 隻）", meta: "20 分鐘", price: 1680, includes: ["溝通 20 分鐘", "提供錄音或文字紀錄"] },
+      { key: "double", label: "多寵溝通（2 隻）", meta: "30 分鐘", price: 2380, includes: ["2 隻・共 30 分鐘", "提供錄音或文字紀錄"] },
+      { key: "triple", label: "三寵溝通（3 隻）", meta: "40 分鐘", price: 3080, includes: ["3 隻・共 40 分鐘", "提供錄音或文字紀錄"] }
     ]),
     methods: ["視訊", "照片＋語音", "照片＋文字"],
     methodHint: "視訊與語音都會提供錄音紀錄；文字適合想慢慢閱讀、反覆查看的人。",
@@ -74,9 +74,9 @@ export const SERVICES = {
     slot: "required",
     plans: withBundles([
       { key: "basic", label: "離世溝通", meta: "30 分鐘", price: 2200, bundlePrice: 3000,
-        includes: ["離世溝通 30 分鐘", "了解牠目前的狀態、傳達彼此想說的話", "視訊、語音溝通提供錄音紀錄"] },
+        includes: ["離世溝通 30 分鐘", "提供錄音或文字紀錄"] },
       { key: "salvation", label: "離世溝通＋超度", meta: "離世溝通＋超度科儀", price: 7200, bundlePrice: 8000,
-        includes: ["離世溝通 30 分鐘（視訊、語音提供錄音紀錄）", "超度科儀（梅山動物科儀，由老師與道長進行，飼主不需到場）", "儀式前先確認毛孩狀態", "儀式照片", "超度後的轉世推算（大致方向與時間估計）"] }
+        includes: ["離世溝通 30 分鐘", "超度科儀＋儀式照片", "超度後的轉世推算"] }
     ]),
     methods: ["照片＋視訊", "照片＋語音", "照片＋文字"],
     methodHint: "視訊與語音都會同步錄音並提供錄音紀錄。",
@@ -119,11 +119,11 @@ export const SERVICES = {
     planNote: "💡 找寵前，建議先確認毛孩的生死。知道生死之後，接下來會想做的事常常不一樣：有人會選擇放下，也有人反而更想把牠找回來。所以第一次來，多數人會先從生死測算開始。",
     plans: withBundles([
       { key: "qimen", label: "奇門遁甲找寵方案（主推）", meta: "三項一起進行", price: 5000,
-        includes: ["生死測算：先確認毛孩的生死", "奇門遁甲找寵報告：方位、周圍環境、搜尋線索", "單次溝通 1 次：牠現在的狀態與周圍附近", "教你怎麼看、怎麼使用這份報告"] },
+        includes: ["生死測算", "奇門遁甲找寵報告", "單次溝通 1 次"] },
       { key: "comm", label: "單次溝通", meta: "不論生死", price: 1680,
-        includes: ["溝通 1 次：牠現在在哪裡、附近周圍有些什麼", "身體狀況與心理狀態", "溝通報告完成後即結案"] },
+        includes: ["溝通 1 次：位置、周圍環境、身心狀態"] },
       { key: "life", label: "生死測算", meta: "統一晚上 9:00 打聖杯", price: 666,
-        includes: ["打聖杯確認毛孩的生死狀態"] }
+        includes: ["打聖杯確認生死"] }
     ], ["life"]),
     addons: [],
     mustKnow: [
