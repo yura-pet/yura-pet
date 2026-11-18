@@ -18,8 +18,8 @@ export const CONFIG = {
 
   // 後台還沒設定前的預設值（之後可以在後台「網站設定」修改）
   defaults: {
-    lineUrl: "",            // 例：https://lin.ee/xxxxxxx 或 https://line.me/R/ti/p/@xxxx
-    lineId: "",             // 例：@yura-pet
+    lineUrl: "https://lin.ee/pYoY3ar",   // LINE 官方帳號加好友連結
+    lineId: "@052mhzeh",               // LINE 官方帳號 ID（用來自動帶入預約資料）
     bookingOpen: true,
     closedMessage: "目前暫停開放線上預約，請先到 LINE 詢問 🙏",
     announcement: "",
