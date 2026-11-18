@@ -54,8 +54,8 @@ export const SERVICES = {
       "時間確認後需完成「全額付款」才算預約成功；當天取消或未出席，不提供退款與兌換。"
     ],
     fields: [
-      { key: "petName", label: "毛孩名字", type: "text", required: true, placeholder: "多寵請填寫每一隻的名字" },
-      { key: "petInfo", label: "品種與年齡", type: "text", required: true, placeholder: "例：米克斯貓・5 歲" },
+      { key: "pets", type: "pets", label: "毛孩資料",
+        count: s => ({ single: 1, double: 2, triple: 3 })[(s.plan || "single").replace(/-art$/, "")] || 1 },
       { key: "questions", label: "想詢問的內容", type: "textarea", required: true,
         placeholder: "建議 5～8 題，把最重要的放在前面", hint: "最重要的問題放前面，讓時間留給真正在意的事。" },
       { key: "message", label: "想對牠說的話", type: "textarea", placeholder: "可以留空" },

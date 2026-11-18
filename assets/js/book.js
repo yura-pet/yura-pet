@@ -37,6 +37,12 @@ const visAddons = () => svc().addons.filter(a => !a.showIf || a.showIf(state));
 const chosenAddons = () => visAddons().filter(a => state.addons.has(a.key));
 const total = () => (planObj()?.price || 0) + chosenAddons().reduce((n, a) => n + a.price, 0);
 const visibleFields = () => svc().fields.filter(f => !f.showIf || f.showIf(state));
+const SPECIES = ["貓", "狗", "其他"], SEXES = ["♂ 公", "♀ 母"];
+const petsField = () => visibleFields().find(f => f.type === "pets");
+const petList = () => { const f = petsField(); if (!f) return []; const n = f.count(state); state.pets ||= [];
+  while (state.pets.length < n) state.pets.push({ name: "", species: "貓", sex: "", info: "" });
+  return state.pets.slice(0, n); };
+const petText = p => [p.species, p.sex.replace(/^[♂♀]\s*/, ""), p.info].filter(Boolean).join("・");
 
 function go(step) {
   if (step === 3 && !hasSlotStep()) step = state.step < 3 ? 4 : 2;
@@ -129,6 +135,14 @@ function fieldHtml(f) {
   const v = state.values[f.key] ?? "";
   const id = "f_" + f.key;
   const req = f.required ? '<span class="req">*</span>' : "";
+  if (f.type === "pets") return petList().map((p, i) => `
+    <div class="pet-box full">
+      <label class="lbl" for="pet_${i}">寵物 ${i + 1} 名字<span class="req">*</span></label>
+      <input type="text" id="pet_${i}" data-pet="${i}" data-pp="name" value="${esc(p.name)}" placeholder="例如：豆豆">
+      <div class="seg-row">${SPECIES.map(o => `<button type="button" class="seg-btn ${p.species === o ? "on" : ""}" data-pet="${i}" data-pp="species" data-v="${o}">${o}</button>`).join("")}</div>
+      <div class="seg-row two">${SEXES.map(o => `<button type="button" class="seg-btn ${p.sex === o ? "on" : ""}" data-pet="${i}" data-pp="sex" data-v="${o}">${o}</button>`).join("")}</div>
+      <input type="text" data-pet="${i}" data-pp="info" value="${esc(p.info)}" placeholder="品種、年齡（選填），例：米克斯・5 歲">
+    </div>`).join("");
   if (f.type === "note") return `<div class="note full" style="margin-top:14px">${esc(f.text)}</div>`;
   let input;
   if (f.type === "multi") {
@@ -194,6 +208,12 @@ function stepDetails() {
     box.querySelectorAll("[data-mf]").forEach(g => g.onchange = () => {
       state.values[g.dataset.mf] = [...g.querySelectorAll("input:checked")].map(i => i.value).join("、"); saveDraft();
     });
+    box.querySelectorAll("input[data-pet]").forEach(el => el.oninput = () => { state.pets[+el.dataset.pet][el.dataset.pp] = el.value; el.classList.remove("invalid"); saveDraft(); });
+    box.querySelectorAll("button[data-pet]").forEach(el => el.onclick = () => {
+      const pet = state.pets[+el.dataset.pet], k = el.dataset.pp;
+      pet[k] = (k === "sex" && pet[k] === el.dataset.v) ? "" : el.dataset.v; saveDraft();
+      el.parentElement.querySelectorAll(".seg-btn").forEach(b => b.classList.toggle("on", b.dataset.v === pet[k]));
+    });
   };
   const drawSum = () => { $("#sumLine").innerHTML = planObj() ? `預估金額：<b class="emph">${money(total())}</b>　<span class="muted">（實際金額以 Yura 確認為準）</span>` : "請先選擇方案"; };
 
@@ -213,6 +233,7 @@ function stepDetails() {
     if (!state.plan) problems.push(["#plans", "請選擇方案"]);
     if (s.methods && !state.method) problems.push([".choices.inline", "請選擇溝通方式"]);
     for (const f of visibleFields()) if (f.required && !String(state.values[f.key] || "").trim()) problems.push(["#f_" + f.key, `請填寫「${f.label}」`]);
+    petList().forEach((p, i) => { if (!p.name.trim()) problems.push(["#pet_" + i, `請填寫寵物 ${i + 1} 的名字`]); });
     const em = (state.customer.email || "").trim();
     if (!em) problems.push(["#c_email", "請填寫 Email"]);
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)) problems.push(["#c_email", "Email 格式好像不對，請再確認一下"]);
@@ -246,7 +267,7 @@ async function stepSlots() {
   stage.innerHTML = `
     ${s.slotHint ? `<div class="note">${esc(s.slotHint)}</div>` : ""}
     ${none ? `<div class="note">目前沒有開放的線上時段，請直接提供 2 個你可以配合的時間，我會回覆可以安排的時段。</div>` : `
-      <p>點選你可以的時間：<b>第一次點的是第一志願</b>，再點一個當第二志願（可不選）。我確認後會在 LINE 通知你。</p>
+      <p>點選你可以的時間：<b>第一次點的是第一志願</b>，再點一個當第二志願（可不選）。實際時間以我在 LINE 回覆確認為準。</p>
       <div id="slotBox">${Object.entries(byDay).map(([d, arr]) => `
         <div class="slot-day"><h4>${esc(slotLabel(arr[0]).split("）")[0])}）</h4>
         <div class="slot-list">${arr.map(x => `<button type="button" class="slot" data-id="${x.id}">${esc(x.time)}</button>`).join("")}</div></div>`).join("")}
@@ -296,7 +317,10 @@ function rows() {
   if (state.method) r.push(["溝通方式", state.method]);
   const ad = chosenAddons();
   if (ad.length) r.push(["加購", ad.map(a => `${a.label} +${money(a.price)}`).join("\n")]);
-  visibleFields().forEach(f => { const v = String(state.values[f.key] || "").trim(); if (v) r.push([f.label.replace(/^\d+\.\s*/, ""), v]); });
+  visibleFields().forEach(f => {
+    if (f.type === "pets") { petList().forEach((p, i) => r.push([`寵物 ${i + 1}`, `${p.name.trim()}${petText(p) ? "（" + petText(p) + "）" : ""}`])); return; }
+    const v = String(state.values[f.key] || "").trim(); if (v) r.push([f.label.replace(/^\d+\.\s*/, ""), v]);
+  });
   r.push(["Email", (state.customer.email || "").trim()]);
   if (hasSlotStep()) {
     const labels = state.picks.map((id, i) => `${i === 0 ? "第一志願" : "第二志願"}：${slotLabel(slots.find(x => x.id === id))}`);
@@ -332,8 +356,11 @@ async function submit() {
     price: p.price, total: total(),
     addons: chosenAddons().map(a => ({ key: a.key, label: a.label, price: a.price })),
     method: state.method || "",
-    petName: String(state.values.petName || "").trim().slice(0, 200),
-    fields: visibleFields().map(f => ({ key: f.key, label: f.label, value: String(state.values[f.key] || "").trim().slice(0, 3000) })).filter(x => x.value),
+    petName: (petsField() ? petList().map(p => p.name.trim()).join("、") : String(state.values.petName || "").trim()).slice(0, 200),
+    fields: [
+      ...petList().map((p, i) => ({ key: "pet" + (i + 1), label: `寵物 ${i + 1}`, value: `${p.name.trim()}${petText(p) ? "（" + petText(p) + "）" : ""}`.slice(0, 300) })),
+      ...visibleFields().filter(f => f.type !== "pets").map(f => ({ key: f.key, label: f.label, value: String(state.values[f.key] || "").trim().slice(0, 3000) }))
+    ].filter(x => x.value),
     customer: { name: String(state.values.ownerName || "").trim().slice(0, 100), email: (state.customer.email || "").trim().slice(0, 200) },
     slotIds: hasSlotStep() ? [...state.picks] : [],
     slotLabels: hasSlotStep() ? state.picks.map(id => slotLabel(slots.find(x => x.id === id))) : [],

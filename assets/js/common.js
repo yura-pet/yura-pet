@@ -1,4 +1,5 @@
 import { isDemo } from "./db.js";
+import { CONFIG } from "./config.js";
 
 export const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
@@ -16,7 +17,7 @@ export function chrome(active, { cta = true } = {}) {
     ${cta ? `<a class="btn primary" href="book.html">立即預約</a>` : ""}
   </div>`;
   document.body.prepend(nav);
-  if (isDemo) {
+  if (isDemo && !CONFIG.lineMode) {
     const bar = document.createElement("div");
     bar.className = "demo-bar";
     bar.innerHTML = `示範模式：資料只存在這台裝置的瀏覽器裡，尚未連接正式資料庫。設定方式見 <a href="https://github.com/yura-pet/yura-pet/blob/main/SETUP.md" target="_blank" rel="noopener">SETUP.md</a>`;

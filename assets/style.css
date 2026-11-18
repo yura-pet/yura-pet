@@ -213,3 +213,10 @@ input:focus,select:focus,textarea:focus{border-color:var(--pink);box-shadow:0 0 
 .choice .c-inc span{display:block}
 .choice .c-inc{display:none}
 .choice:has(input:checked) .c-inc{display:grid}
+
+/* ---------- 多寵資料 ---------- */
+.pet-box{display:grid;gap:8px;margin-top:14px;padding:14px;border-radius:18px;background:rgba(248,233,223,.55);border:1px solid rgba(215,154,130,.22)}
+.seg-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.seg-row.two{grid-template-columns:repeat(2,1fr)}
+.seg-btn{min-height:44px;border-radius:14px;border:1px solid rgba(126,149,174,.3);background:rgba(255,255,255,.9);font:inherit;font-size:16px;font-weight:700;color:var(--ink-deep);cursor:pointer}
+.seg-btn.on{background:#e3eef0;border-color:#8fb3bb;color:#3e6d78}

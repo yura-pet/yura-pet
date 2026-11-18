@@ -16,6 +16,9 @@ export const CONFIG = {
   },
   // ↑↑↑ 留空 = 示範模式（資料只存在目前這台裝置的瀏覽器裡）↑↑↑
 
+  // true = 還沒接資料庫時，預約資料只透過「傳到 LINE」交給 Yura（不顯示示範模式提示）
+  lineMode: true,
+
   // 後台還沒設定前的預設值（之後可以在後台「網站設定」修改）
   defaults: {
     lineUrl: "https://lin.ee/pYoY3ar",   // LINE 官方帳號加好友連結
