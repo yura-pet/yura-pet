@@ -3,9 +3,9 @@
 
 // 套組方案（溝通＋似顏繪）的 key 都以 -art 結尾
 export const isBundle = key => /-art$/.test(key || "");
-// 套組價 = 溝通價 + 這個金額（似顏繪單買 NT$2,000，手繪含框含運）；有 bundlePrice 的方案直接用那個價錢
+// 套組價 = 溝通價 + 這個金額；劃掉的原價 = 溝通價 + ART_ALONE（單獨委託手繪另計 NT$2,000）；有 bundlePrice 的方案直接用那個價錢
 const BUNDLE_EXTRA = 1200;
-const ART_ALONE = 2000;
+const ART_ALONE = 1500;
 function withBundles(plans, skip = []) {
   const out = plans.map(p => ({ ...p }));
   out.forEach(p => delete p.bundlePrice);
