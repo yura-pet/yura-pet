@@ -1,0 +1,11 @@
+# Netlify 部署設定：只部署 manager 資料夾（個人預約管理系統）
+[build]
+  base = "manager"
+  publish = "."
+  functions = "netlify/functions"
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Robots-Tag = "noindex, nofollow"
+    X-Frame-Options = "DENY"

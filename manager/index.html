@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<meta name="theme-color" content="#fff6d8">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Yura 預約">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-180.png">
+<title>Yura 預約管理</title>
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<div class="bg-deco" aria-hidden="true"><span class="blob b1"></span><span class="blob b2"></span><span class="blob b3"></span></div>
+
+<!-- 登入 -->
+<section id="login" class="login hidden">
+  <form class="panel login-box" id="loginForm">
+    <div class="logo">🐾</div>
+    <h1>Yura 預約管理</h1>
+    <p class="muted">請輸入管理密碼</p>
+    <input type="password" id="pw" placeholder="密碼" autocomplete="current-password" required>
+    <label class="check"><input type="checkbox" id="remember" checked> 在這台裝置記住我</label>
+    <button class="btn primary wide" type="submit">登入</button>
+    <p class="err" id="loginErr"></p>
+  </form>
+</section>
+
+<div id="app" class="hidden">
+  <header class="top">
+    <div class="brand"><span class="paw">🐾</span><div><b>Yura 預約管理</b><small id="syncState">—</small></div></div>
+    <div class="top-actions">
+      <button class="btn primary" id="addBtn" type="button">＋ 新增預約</button>
+      <div class="menu">
+        <button class="btn icon" id="menuBtn" type="button" aria-label="選單">⋯</button>
+        <div class="menu-pop hidden" id="menuPop">
+          <button type="button" id="mRefresh">🔄 重新整理資料</button>
+          <button type="button" id="mExport">⬇️ 下載備份</button>
+          <button type="button" id="mImport">⬆️ 匯入備份</button>
+          <button type="button" id="mLogout">🚪 登出</button>
+        </div>
+      </div>
+    </div>
+  </header>
+  <div id="modeBar" class="mode-bar hidden"></div>
+
+  <main class="main">
+    <!-- 今天 -->
+    <section class="panel today">
+      <div class="today-head">
+        <div><div class="eyebrow">今天</div><h2 id="todayLabel"></h2></div>
+        <div class="today-sum" id="todaySum"></div>
+      </div>
+      <div class="today-list" id="todayList"></div>
+    </section>
+
+    <!-- 月曆 -->
+    <section class="panel cal">
+      <div class="cal-head">
+        <button class="btn icon" id="prevM" type="button" aria-label="上個月">‹</button>
+        <h2 id="monthLabel"></h2>
+        <button class="btn icon" id="nextM" type="button" aria-label="下個月">›</button>
+        <button class="btn small soft" id="goToday" type="button">回到今天</button>
+      </div>
+      <div class="cal-week"><span>日</span><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span></div>
+      <div class="cal-grid" id="calGrid"></div>
+      <div class="legend"><span><i class="dot st-booked"></i>已預約</span><span><i class="dot st-done"></i>已完成</span><span><i class="dot st-cancelled"></i>已取消</span><span><i class="dot unpaid"></i>未付清</span></div>
+    </section>
+
+    <!-- 下方分頁 -->
+    <nav class="tabs" id="tabs">
+      <button class="tab on" data-tab="day" type="button">📅 預約</button>
+      <button class="tab" data-tab="customers" type="button">👤 客人資料</button>
+      <button class="tab" data-tab="stats" type="button">📊 結算統計</button>
+    </nav>
+
+    <section class="tab-page" id="tab-day">
+      <div class="panel">
+        <div class="sec-head"><h3 id="dayTitle"></h3><button class="btn small primary" id="dayAdd" type="button">＋ 這天新增</button></div>
+        <div id="dayList"></div>
+      </div>
+      <div class="panel">
+        <div class="sec-head"><h3>接下來 14 天</h3></div>
+        <div id="upList"></div>
+      </div>
+      <div class="panel">
+        <div class="sec-head"><h3>還沒收齊的款項</h3><span class="muted" id="unpaidSum"></span></div>
+        <div id="unpaidList"></div>
+      </div>
+    </section>
+
+    <section class="tab-page hidden" id="tab-customers">
+      <div class="panel">
+        <div class="sec-head">
+          <h3>客人資料 <span class="muted" id="custCount"></span></h3>
+          <select id="custSort" class="mini"><option value="recent">最近來的</option><option value="visits">來最多次</option><option value="spent">消費最多</option><option value="name">名字</option></select>
+        </div>
+        <input type="search" id="custSearch" placeholder="搜尋客人或寵物名字…">
+        <div id="custList" class="cust-list"></div>
+      </div>
+    </section>
+
+    <section class="tab-page hidden" id="tab-stats">
+      <div class="panel">
+        <div class="sec-head"><h3>結算統計</h3>
+          <div class="seg" id="statRange"><button type="button" data-r="month" class="on">月</button><button type="button" data-r="year">年</button><button type="button" data-r="all">全部</button></div>
+          <select id="statMonth" class="mini"></select>
+        </div>
+        <div class="stat-cards" id="statCards"></div>
+        <p class="muted small">依「預約日期」計算，不含已取消的預約。</p>
+        <div class="breakdowns" id="breakdowns"></div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<!-- 預約表單 -->
+<dialog id="bkDlg" class="dlg">
+  <form id="bkForm" method="dialog" autocomplete="off">
+    <div class="dlg-head"><h3 id="bkTitle">新增預約</h3><button class="btn icon" type="button" data-close aria-label="關閉">✕</button></div>
+    <div class="dlg-body">
+      <div class="grid2">
+        <label class="fld"><span>客人名字 *</span><input id="f_customer" list="dl_customers" required><small id="custHint" class="hint"></small></label>
+        <label class="fld"><span>從哪預約 *</span><select id="f_source" required></select></label>
+        <label class="fld"><span>寵物名字 *</span><input id="f_pet" list="dl_pets" required></label>
+        <label class="fld"><span>預約項目 *</span><select id="f_service" required></select></label>
+      </div>
+      <div class="grid3">
+        <label class="fld"><span>年</span><select id="f_y"></select></label>
+        <label class="fld"><span>月</span><select id="f_m"></select></label>
+        <label class="fld"><span>日</span><select id="f_d"></select></label>
+      </div>
+      <div class="grid2">
+        <label class="fld"><span>預約時間 *</span><select id="f_time" required></select></label>
+        <label class="fld"><span>狀態</span><select id="f_status"></select></label>
+        <label class="fld"><span>在哪裡溝通</span><select id="f_channel"></select></label>
+        <label class="fld"><span>溝通方式</span><select id="f_method"></select></label>
+      </div>
+
+      <fieldset class="pay">
+        <legend>💰 收款紀錄 <span class="badge" id="payBadge"></span></legend>
+        <div class="grid2">
+          <label class="fld"><span>總金額</span><input id="f_total" type="number" inputmode="numeric" min="0" placeholder="例：1680"></label>
+          <div class="fld"><span>&nbsp;</span><button class="btn paid wide" id="payAll" type="button">✔ 付清</button></div>
+          <label class="fld"><span>訂金</span><input id="f_deposit" type="number" inputmode="numeric" min="0" placeholder="沒有訂金可留空"></label>
+          <label class="check box"><input type="checkbox" id="f_depositPaid"> 已收訂金</label>
+          <div class="fld"><span>尾款</span><div class="readout" id="balanceOut">—</div></div>
+          <label class="check box"><input type="checkbox" id="f_balancePaid"> 已收尾款</label>
+        </div>
+        <small class="hint" id="paidAtOut"></small>
+      </fieldset>
+
+      <label class="fld"><span>備註</span><textarea id="f_note" rows="3" placeholder="想問的問題、特殊狀況…"></textarea></label>
+    </div>
+    <div class="dlg-foot">
+      <button class="btn danger" id="bkDel" type="button">刪除</button>
+      <span class="spacer"></span>
+      <button class="btn" type="button" data-close>取消</button>
+      <button class="btn primary" type="submit" id="bkSave">儲存</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- 客人資料 -->
+<dialog id="custDlg" class="dlg">
+  <form id="custForm" method="dialog" autocomplete="off">
+    <div class="dlg-head"><h3 id="custTitle">客人資料</h3><button class="btn icon" type="button" data-close aria-label="關閉">✕</button></div>
+    <div class="dlg-body">
+      <div class="stat-cards small" id="custStats"></div>
+      <div class="grid2">
+        <label class="fld"><span>名字</span><input id="c_name" required></label>
+        <label class="fld"><span>從哪預約</span><select id="c_source"></select></label>
+        <label class="fld full"><span>LINE / IG 帳號</span><input id="c_contact" placeholder="方便找到這位客人"></label>
+      </div>
+      <label class="fld"><span>客人備註</span><textarea id="c_note" rows="3" placeholder="個性、家裡有哪些毛孩、注意事項…"></textarea></label>
+      <h4>預約紀錄</h4>
+      <div id="custHistory"></div>
+    </div>
+    <div class="dlg-foot">
+      <button class="btn danger" id="custDel" type="button">刪除客人</button>
+      <span class="spacer"></span>
+      <button class="btn soft" id="custBook" type="button">＋ 幫他新增預約</button>
+      <button class="btn primary" type="submit">儲存</button>
+    </div>
+  </form>
+</dialog>
+
+<datalist id="dl_customers"></datalist>
+<datalist id="dl_pets"></datalist>
+<input type="file" id="importFile" accept="application/json" class="hidden">
+<div class="toast" id="toast"></div>
+<script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,12 @@
+{
+  "name": "Yura 預約管理",
+  "short_name": "Yura 預約",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#fffaea",
+  "theme_color": "#fff6d8",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
