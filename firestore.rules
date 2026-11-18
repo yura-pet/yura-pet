@@ -1,0 +1,58 @@
+rules_version = '2';
+// Yura 預約系統｜Firestore 安全規則
+// 使用方式：Firebase 主控台 → Firestore Database → 規則 → 整個貼上 → 發布
+// ⚠️ 把下面的 yura@example.com 換成你自己的後台登入 Email（可以放多個）
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isAdmin() {
+      return request.auth != null
+        && request.auth.token.email in ['yura@example.com'];
+    }
+
+    function str(v, min, max) { return v is string && v.size() >= min && v.size() <= max; }
+
+    function validBooking(d) {
+      return d.keys().hasOnly(['service','serviceName','plan','planLabel','price','total','addons','method',
+                               'petName','fields','customer','slotIds','slotLabels','customTimes','agreed',
+                               'status','createdAt'])
+        && d.status == 'new'
+        && d.createdAt == request.time
+        && d.agreed == true
+        && d.service in ['general','deceased','search','illustration']
+        && str(d.plan, 1, 40)
+        && str(d.petName, 1, 200)
+        && d.customer is map
+        && d.customer.keys().hasOnly(['name','contact','phone'])
+        && str(d.customer.name, 1, 100)
+        && str(d.customer.contact, 1, 200)
+        && d.fields is list && d.fields.size() <= 40
+        && d.slotIds is list && d.slotIds.size() <= 2
+        && d.total is number && d.total >= 0 && d.total < 100000;
+    }
+
+    // 網站設定：大家都能讀，只有管理員能改
+    match /settings/{id} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // 開放時段：大家都能看；客人送出預約時只能把「開放」改成「已選」
+    match /slots/{id} {
+      allow read: if true;
+      allow create, delete: if isAdmin();
+      allow update: if isAdmin() || (
+        resource.data.status == 'open'
+        && request.resource.data.status == 'held'
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
+      );
+    }
+
+    // 預約：客人可以新增、可以用 8 碼編號查詢自己那一筆；列表與修改只有管理員
+    match /bookings/{id} {
+      allow get: if true;
+      allow list, update, delete: if isAdmin();
+      allow create: if id.matches('^[A-Z0-9]{8}$') && validBooking(request.resource.data);
+    }
+  }
+}

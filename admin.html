@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#f8f1f4">
+<meta name="robots" content="noindex,nofollow">
+<title>Yura｜預約後台</title>
+<link rel="stylesheet" href="assets/style.css">
+<style>
+.wrap{width:min(1080px,calc(100% - 24px));padding-bottom:40px}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin-top:16px}
+.tab{position:relative}
+.tab.on{background:var(--pink-strong);color:#fff;border-color:var(--pink-strong)}
+.tab .cnt{background:#fff;color:var(--pink-strong);border-radius:99px;padding:0 7px;font-size:12px;margin-left:4px}
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:12px}
+.toolbar input,.toolbar select{width:auto;flex:1;min-width:150px;padding:8px 12px}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{border:1px solid var(--line);background:rgba(255,255,255,.75);border-radius:99px;padding:4px 12px;font:inherit;font-size:14px;cursor:pointer;color:var(--ink)}
+.chip.on{background:var(--ink-deep);color:#fff;border-color:var(--ink-deep)}
+.bk{margin-top:10px;border-radius:18px;background:rgba(255,255,255,.75);border:1px solid var(--line);overflow:hidden}
+.bk>summary{list-style:none;cursor:pointer;padding:12px 16px;display:grid;grid-template-columns:1fr auto;gap:4px 12px}
+.bk>summary::-webkit-details-marker{display:none}
+.bk[open]>summary{background:var(--pink-soft)}
+.bk .t1{font-weight:700;color:var(--ink-deep);font-size:16px}
+.bk .t2{color:var(--muted);font-size:14px;line-height:1.6}
+.bk .code{font-family:ui-monospace,Menlo,monospace;font-size:13px;color:var(--muted)}
+.bk-body{padding:14px 16px 18px;display:grid;grid-template-columns:1.2fr 1fr;gap:18px}
+@media(max-width:760px){.bk-body{grid-template-columns:1fr}}
+.kv{display:grid;grid-template-columns:120px 1fr;gap:4px 10px;font-size:15px}
+.kv .k{color:var(--muted)}
+.kv .v{white-space:pre-wrap;word-break:break-word;color:var(--ink)}
+.adm{padding:12px;border-radius:14px;background:var(--soft);border:1px solid var(--line)}
+.adm .field{margin-top:8px}
+.adm input,.adm select,.adm textarea{padding:8px 11px;font-size:15px}
+.adm textarea{min-height:70px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-top:14px}
+.stat{padding:12px 14px;border-radius:16px;background:rgba(255,255,255,.75);border:1px solid var(--line)}
+.stat b{display:block;font-size:26px;color:var(--ink-deep);line-height:1.2}
+.stat span{font-size:14px;color:var(--muted)}
+.up{display:flex;gap:10px;align-items:center;padding:8px 0;border-top:1px dashed var(--line);font-size:15px}
+.up:first-child{border-top:0}
+.up .when{font-weight:700;color:var(--pink-strong);min-width:130px}
+.sday{margin-top:12px}
+.sday h4{margin:0 0 6px;color:var(--ink-deep)}
+.srow{display:flex;flex-wrap:wrap;gap:8px}
+.sl{display:flex;align-items:center;gap:6px;padding:5px 6px 5px 12px;border-radius:12px;border:1px solid var(--line);background:rgba(255,255,255,.8);font-size:15px}
+.sl.open{border-color:rgba(95,143,107,.45)}
+.sl.held{border-color:rgba(205,135,109,.6);background:rgba(255,240,231,.96)}
+.sl.booked{border-color:var(--ink-deep);background:rgba(49,72,99,.07)}
+.sl.closed{opacity:.55}
+.sl .x{border:0;background:none;cursor:pointer;color:var(--muted);font-size:15px;padding:2px 6px;border-radius:8px}
+.sl .x:hover{background:rgba(0,0,0,.06)}
+.wd{display:flex;gap:6px;flex-wrap:wrap}
+.wd label{display:flex;align-items:center;gap:4px;padding:4px 10px;border:1px solid var(--line);border-radius:99px;background:#fff;font-size:15px;cursor:pointer}
+.empty{padding:30px;text-align:center;color:var(--muted)}
+</style>
+</head>
+<body>
+<main class="wrap">
+  <section class="card hidden" id="loginCard" style="max-width:460px;margin:30px auto 0">
+    <h1 class="section-title">Yura 預約後台</h1>
+    <form id="loginForm">
+      <div class="field"><label for="em">Email</label><input type="email" id="em" autocomplete="username" required></div>
+      <div class="field"><label for="pw">密碼</label><input type="password" id="pw" autocomplete="current-password" required></div>
+      <div class="wiz-nav"><button class="btn primary" type="submit" id="loginBtn">登入</button></div>
+      <p class="muted" id="loginMsg"></p>
+    </form>
+  </section>
+
+  <div id="app" class="hidden">
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:16px">
+      <h1 class="section-title" style="margin:0;margin-right:auto">預約後台</h1>
+      <span class="muted" id="who"></span>
+      <button class="btn small" id="notifyBtn" type="button">開啟新預約通知</button>
+      <button class="btn small ghost" id="logout" type="button">登出</button>
+    </div>
+    <div class="tabs">
+      <button class="btn small tab on" data-tab="bookings" type="button">預約管理<span class="cnt hidden" id="newCnt"></span></button>
+      <button class="btn small tab" data-tab="slots" type="button">時段管理</button>
+      <button class="btn small tab" data-tab="settings" type="button">網站設定</button>
+    </div>
+    <div id="err" class="note warn hidden"></div>
+
+    <section id="tab-bookings">
+      <div class="stats" id="stats"></div>
+      <div class="card" style="padding:20px">
+        <h3 style="margin-top:0">即將到來的預約</h3>
+        <div id="upcoming"></div>
+      </div>
+      <div class="toolbar">
+        <div class="chips" id="statusChips"></div>
+      </div>
+      <div class="toolbar">
+        <select id="fService"><option value="">全部服務</option></select>
+        <input type="text" id="fSearch" placeholder="搜尋編號、毛孩、稱呼、LINE 名稱…">
+        <button class="btn small" id="csv" type="button">匯出 CSV</button>
+      </div>
+      <div id="list"></div>
+    </section>
+
+    <section id="tab-slots" class="hidden">
+      <div class="card" style="padding:22px">
+        <h3 style="margin-top:0">新增開放時段</h3>
+        <div class="form-grid">
+          <div class="field"><label for="sFrom">開始日期</label><input type="date" id="sFrom"></div>
+          <div class="field"><label for="sTo">結束日期</label><input type="date" id="sTo"></div>
+          <div class="field full"><div class="lbl">星期</div><div class="wd" id="sWd"></div></div>
+          <div class="field full"><label for="sTimes">時間（可以填多個，用逗號或空白分開）</label><input type="text" id="sTimes" placeholder="例：14:00, 16:00, 20:30"></div>
+        </div>
+        <p class="muted" id="sPreview"></p>
+        <div class="wiz-nav"><button class="btn primary" id="sAdd" type="button">新增時段</button></div>
+      </div>
+      <div class="toolbar">
+        <div class="chips">
+          <span class="badge ok">開放</span><span class="badge new">客人已選・待確認</span><span class="badge done">已預約</span><span class="badge off">關閉</span>
+        </div>
+        <label class="muted" style="margin-left:auto"><input type="checkbox" id="showPast"> 顯示已過去的時段</label>
+      </div>
+      <div class="card" style="padding:20px"><div id="slotList"></div></div>
+    </section>
+
+    <section id="tab-settings" class="hidden">
+      <div class="card" style="padding:24px">
+        <form id="setForm">
+          <label class="choice"><input type="checkbox" id="st_open"><span class="c-main"><span class="c-t">開放線上預約</span><span class="c-m">　關閉後客人只會看到下方的「暫停訊息」</span></span></label>
+          <div class="field"><label for="st_closed">暫停預約時顯示的訊息</label><input type="text" id="st_closed"></div>
+          <div class="form-grid">
+            <div class="field"><label for="st_lineUrl">LINE 連結</label><input type="text" id="st_lineUrl" placeholder="https://lin.ee/…"><div class="hint">LINE 官方帳號後台「加入好友」的網址</div></div>
+            <div class="field"><label for="st_lineId">LINE ID</label><input type="text" id="st_lineId" placeholder="@yura…"><div class="hint">沒有連結時，用 ID 自動產生加好友連結</div></div>
+          </div>
+          <div class="field"><label for="st_pay">付款資訊（客人狀態變成「待付款」時會看到）</label><textarea id="st_pay" placeholder="銀行代碼、帳號、戶名、付款期限…"></textarea></div>
+          <div class="field"><label for="st_ann">首頁公告（留空就不顯示）</label><textarea id="st_ann" placeholder="例：12 月時段已開放！"></textarea></div>
+          <div class="wiz-nav"><button class="btn primary" type="submit">儲存設定</button></div>
+        </form>
+        <div id="demoTools" class="hidden" style="margin-top:20px">
+          <div class="note">示範模式：可以清除這台裝置上的所有示範資料重新開始。</div>
+          <div class="wiz-nav"><button class="btn danger small" id="resetDemo" type="button">清除示範資料</button></div>
+        </div>
+      </div>
+    </section>
+  </div>
+</main>
+<script type="module" src="assets/js/admin.js"></script>
+</body>
+</html>

@@ -1,0 +1,379 @@
+import { chrome, esc, toast, copyText, lineHref } from "./common.js";
+import { SERVICES, SERVICE_ORDER, money } from "./services.js";
+import { getSettings, listOpenSlots, createBooking, slotLabel, fmtCode, isDemo } from "./db.js";
+
+chrome("book", { cta: false });
+
+const $ = s => document.querySelector(s);
+const stage = $("#stage");
+const STEP_NAMES = ["選擇服務", "預約前必讀", "填寫資料", "選擇時段", "確認送出"];
+
+let settings = {};
+let slots = null; // 開放的時段（延遲載入）
+const DRAFT = "yura_booking_draft";
+
+const state = {
+  step: 0, service: "", plan: "", method: "", addons: new Set(), values: {},
+  customer: { name: "", contact: "", phone: "" },
+  agreed: [], picks: [], noFit: false, customTimes: "", final: false, code: ""
+};
+
+// ---- 草稿（重新整理不會不見）----
+function saveDraft() {
+  try { sessionStorage.setItem(DRAFT, JSON.stringify({ ...state, addons: [...state.addons] })); } catch {}
+}
+function loadDraft() {
+  try {
+    const d = JSON.parse(sessionStorage.getItem(DRAFT));
+    if (d && !d.code) Object.assign(state, d, { addons: new Set(d.addons || []) });
+  } catch {}
+}
+function clearDraft() { try { sessionStorage.removeItem(DRAFT); } catch {} }
+
+const svc = () => SERVICES[state.service];
+const planObj = () => svc()?.plans.find(p => p.key === state.plan);
+const hasSlotStep = () => svc() && svc().slot !== "none";
+const total = () => (planObj()?.price || 0) + svc().addons.filter(a => state.addons.has(a.key)).reduce((n, a) => n + a.price, 0);
+const visibleFields = () => svc().fields.filter(f => !f.showIf || f.showIf(state));
+
+function go(step) {
+  if (step === 3 && !hasSlotStep()) step = state.step < 3 ? 4 : 2;
+  state.step = step;
+  saveDraft();
+  render();
+  document.getElementById("wizard").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function header() {
+  const s = svc();
+  const steps = hasSlotStep() || !s ? STEP_NAMES : STEP_NAMES.filter((_, i) => i !== 3);
+  const idx = steps.indexOf(STEP_NAMES[state.step]);
+  $("#wzKicker").textContent = s ? `${s.icon} ${s.name}` : "線上預約";
+  $("#wzTitle").textContent = state.step === 5 ? "預約已送出" : STEP_NAMES[state.step];
+  $("#wzProgress").innerHTML = state.step === 5 ? "" : steps.map((_, i) => `<span class="${i <= idx ? "on" : ""}"></span>`).join("");
+  $("#wzStepLabel").textContent = state.step === 5 ? "" : `第 ${idx + 1} / ${steps.length} 步`;
+}
+
+function navBtns(backTo, nextLabel = "下一步", nextId = "next") {
+  return `<div class="wiz-nav">
+    ${backTo !== null ? `<button class="btn ghost" type="button" data-go="${backTo}">← 上一步</button>` : ""}
+    <button class="btn primary" type="button" id="${nextId}">${nextLabel}</button>
+  </div>`;
+}
+function bindBack() { stage.querySelectorAll("[data-go]").forEach(b => b.onclick = () => go(+b.dataset.go)); }
+
+// ---------- Step 0 選擇服務 ----------
+function stepService() {
+  if (!settings.bookingOpen) {
+    const h = lineHref(settings);
+    stage.innerHTML = `<div class="note warn">${esc(settings.closedMessage)}</div>
+      ${h ? `<div class="row-btns"><a class="btn line" href="${h}" target="_blank" rel="noopener">到 LINE 詢問</a></div>` : ""}`;
+    return;
+  }
+  stage.innerHTML = `
+    <p>依照毛孩目前的狀況選擇：</p>
+    <div class="svc-grid">${SERVICE_ORDER.map(k => {
+      const s = SERVICES[k];
+      return `<button type="button" class="svc ${state.service === k ? "sel" : ""}" data-k="${k}">
+        <div class="kicker">${esc(s.kicker)}</div>
+        <div class="nm"><span class="ic">${s.icon}</span> ${esc(s.name)}</div>
+        <div class="ds">${esc(s.short)}</div>
+        <div class="pr">${money(Math.min(...s.plans.map(p => p.price)))} 起</div>
+      </button>`;
+    }).join("")}</div>
+    <div class="note">毛孩在身邊 → 一般溝通；已離世 → 離世溝通；走失失聯 → 找寵服務。不確定的話也可以先到 LINE 詢問。</div>`;
+  stage.querySelectorAll(".svc").forEach(b => b.onclick = () => {
+    if (state.service !== b.dataset.k) {
+      Object.assign(state, { service: b.dataset.k, plan: "", method: "", addons: new Set(), agreed: [], picks: [], noFit: false });
+      const s = svc();
+      if (s.plans.length === 1) state.plan = s.plans[0].key;
+    }
+    go(1);
+  });
+}
+
+// ---------- Step 1 必讀 ----------
+function stepMust() {
+  const s = svc();
+  const ext = s.detailUrl.startsWith("http");
+  stage.innerHTML = `
+    <p>為了讓這次的服務真的幫得上你，請花一分鐘看完以下重點，<b>每一條都勾選</b>才能繼續。</p>
+    <div class="must">${s.mustKnow.map((t, i) => `
+      <label class="choice"><input type="checkbox" data-i="${i}" ${state.agreed[i] ? "checked" : ""}>
+      <span class="c-main"><span class="c-t">${esc(t)}</span></span></label>`).join("")}
+    </div>
+    <div class="note">想看完整內容（溝通方式、常見問題、注意事項）：
+      <a href="${s.detailUrl}" ${ext ? 'target="_blank" rel="noopener"' : 'target="_blank"'}>${esc(s.name)}${ext ? "詳細說明書" : "作品與說明"} ↗</a>
+    </div>
+    <div class="row-btns" style="justify-content:flex-start"><button type="button" class="btn small ghost" id="allOk">全部都看過了，全選</button></div>
+    ${navBtns(0, "我了解了，下一步")}`;
+  const next = $("#next");
+  const sync = () => {
+    const boxes = [...stage.querySelectorAll(".must input")];
+    state.agreed = boxes.map(b => b.checked);
+    next.disabled = !boxes.every(b => b.checked);
+    saveDraft();
+  };
+  stage.querySelectorAll(".must input").forEach(b => b.onchange = sync);
+  $("#allOk").onclick = () => { stage.querySelectorAll(".must input").forEach(b => b.checked = true); sync(); };
+  sync();
+  next.onclick = () => go(2);
+  bindBack();
+}
+
+// ---------- Step 2 資料 ----------
+function fieldHtml(f) {
+  const v = state.values[f.key] ?? "";
+  const id = "f_" + f.key;
+  const req = f.required ? '<span class="req">*</span>' : "";
+  let input;
+  if (f.type === "textarea") input = `<textarea id="${id}" data-f="${f.key}" placeholder="${esc(f.placeholder || "")}">${esc(v)}</textarea>`;
+  else if (f.type === "select") input = `<select id="${id}" data-f="${f.key}"><option value="">請選擇</option>${f.options.map(o => `<option ${o === v ? "selected" : ""}>${esc(o)}</option>`).join("")}</select>`;
+  else input = `<input type="text" id="${id}" data-f="${f.key}" value="${esc(v)}" placeholder="${esc(f.placeholder || "")}">`;
+  const full = f.type === "textarea" || f.hint ? "full" : "";
+  return `<div class="field ${full}"><label for="${id}">${esc(f.label)}${req}</label>${input}${f.hint ? `<div class="hint">${esc(f.hint)}</div>` : ""}</div>`;
+}
+
+function stepDetails() {
+  const s = svc();
+  stage.innerHTML = `
+    <div class="lbl">方案<span class="req">*</span></div>
+    <div class="choices" id="plans">${s.plans.map(p => `
+      <label class="choice"><input type="radio" name="plan" value="${p.key}" ${state.plan === p.key ? "checked" : ""}>
+      <span class="c-main"><span class="c-t">${esc(p.label)}</span><span class="c-m">　${esc(p.meta || "")}</span></span>
+      <span class="c-p">${money(p.price)}</span></label>`).join("")}
+    </div>
+    ${s.methods ? `<div class="field"><div class="lbl">溝通方式<span class="req">*</span></div>
+      <div class="choices inline">${s.methods.map(m => `<label class="choice"><input type="radio" name="method" value="${esc(m)}" ${state.method === m ? "checked" : ""}><span class="c-main"><span class="c-t">${esc(m)}</span></span></label>`).join("")}</div>
+      ${s.methodHint ? `<div class="hint">${esc(s.methodHint)}</div>` : ""}</div>` : ""}
+    ${s.addons.length ? `<div class="field"><div class="lbl">加購（可不選）</div>
+      <div class="choices">${s.addons.map(a => `<label class="choice"><input type="checkbox" name="addon" value="${a.key}" ${state.addons.has(a.key) ? "checked" : ""}>
+      <span class="c-main"><span class="c-t">${esc(a.label)}</span>${a.hint ? `<br><span class="c-m">${esc(a.hint)}</span>` : ""}</span><span class="c-p">+${money(a.price)}</span></label>`).join("")}</div></div>` : ""}
+    <h3 style="margin-top:24px">毛孩資料</h3>
+    <div class="form-grid" id="fields"></div>
+    <h3 style="margin-top:24px">你的聯絡方式</h3>
+    <div class="form-grid">
+      <div class="field"><label for="c_name">怎麼稱呼你<span class="req">*</span></label><input type="text" id="c_name" value="${esc(state.customer.name)}" autocomplete="name"></div>
+      <div class="field"><label for="c_contact">LINE 名稱<span class="req">*</span></label><input type="text" id="c_contact" value="${esc(state.customer.contact)}" placeholder="方便我在 LINE 認出你"></div>
+      <div class="field full"><label for="c_phone">手機（選填）</label><input type="tel" id="c_phone" value="${esc(state.customer.phone)}" autocomplete="tel"></div>
+    </div>
+    <div class="note">📷 需要準備：${s.prepare.map(esc).join("；")}</div>
+    <div class="note" id="sumLine"></div>
+    ${navBtns(1)}`;
+
+  const drawFields = () => {
+    const box = $("#fields");
+    // 保留目前輸入的值
+    box.querySelectorAll("[data-f]").forEach(el => state.values[el.dataset.f] = el.value);
+    box.innerHTML = visibleFields().map(fieldHtml).join("");
+    box.querySelectorAll("[data-f]").forEach(el => {
+      el.oninput = () => { state.values[el.dataset.f] = el.value; el.classList.remove("invalid"); saveDraft(); };
+      if (el.tagName === "SELECT") el.onchange = () => { state.values[el.dataset.f] = el.value; saveDraft(); drawFields(); };
+    });
+  };
+  const drawSum = () => { $("#sumLine").innerHTML = planObj() ? `預估金額：<b class="emph">${money(total())}</b>　<span class="muted">（實際金額以 Yura 確認為準）</span>` : "請先選擇方案"; };
+
+  stage.querySelectorAll("input[name=plan]").forEach(r => r.onchange = () => { state.plan = r.value; saveDraft(); drawFields(); drawSum(); });
+  stage.querySelectorAll("input[name=method]").forEach(r => r.onchange = () => { state.method = r.value; saveDraft(); });
+  stage.querySelectorAll("input[name=addon]").forEach(r => r.onchange = () => { r.checked ? state.addons.add(r.value) : state.addons.delete(r.value); saveDraft(); drawFields(); drawSum(); });
+  [["c_name", "name"], ["c_contact", "contact"], ["c_phone", "phone"]].forEach(([id, k]) => $("#" + id).oninput = e => { state.customer[k] = e.target.value; e.target.classList.remove("invalid"); saveDraft(); });
+  drawFields(); drawSum();
+
+  $("#next").onclick = () => {
+    const problems = [];
+    if (!state.plan) problems.push(["#plans", "請選擇方案"]);
+    if (s.methods && !state.method) problems.push([".choices.inline", "請選擇溝通方式"]);
+    for (const f of visibleFields()) if (f.required && !String(state.values[f.key] || "").trim()) problems.push(["#f_" + f.key, `請填寫「${f.label}」`]);
+    if (!state.customer.name.trim()) problems.push(["#c_name", "請填寫稱呼"]);
+    if (!state.customer.contact.trim()) problems.push(["#c_contact", "請填寫 LINE 名稱"]);
+    if (problems.length) {
+      problems.forEach(([sel]) => { const el = $(sel); el && el.classList.add("invalid"); });
+      const first = $(problems[0][0]);
+      first && first.scrollIntoView({ behavior: "smooth", block: "center" });
+      toast(problems[0][1]);
+      return;
+    }
+    go(3);
+  };
+  bindBack();
+}
+
+// ---------- Step 3 時段 ----------
+async function stepSlots() {
+  const s = svc();
+  if (slots === null) {
+    stage.innerHTML = `<p class="muted">正在讀取可預約時段…</p>`;
+    try { slots = await listOpenSlots(); } catch (e) { console.warn(e); slots = []; }
+  }
+  // 移除已經不存在的選擇
+  state.picks = state.picks.filter(id => slots.some(x => x.id === id));
+  const byDay = {};
+  slots.forEach(x => (byDay[x.date] ||= []).push(x));
+  const required = s.slot === "required";
+  const none = slots.length === 0;
+  if (none) state.noFit = true;
+
+  stage.innerHTML = `
+    ${s.slotHint ? `<div class="note">${esc(s.slotHint)}</div>` : ""}
+    ${none ? `<div class="note">目前沒有開放的線上時段，請直接提供 2 個你可以配合的時間，我會回覆可以安排的時段。</div>` : `
+      <p>點選你可以的時間：<b>第一次點的是第一志願</b>，再點一個當第二志願（可不選）。我確認後會在 LINE 通知你。</p>
+      <div id="slotBox">${Object.entries(byDay).map(([d, arr]) => `
+        <div class="slot-day"><h4>${esc(slotLabel(arr[0]).split("）")[0])}）</h4>
+        <div class="slot-list">${arr.map(x => `<button type="button" class="slot" data-id="${x.id}">${esc(x.time)}</button>`).join("")}</div></div>`).join("")}
+      </div>
+      <label class="choice" style="margin-top:16px"><input type="checkbox" id="noFit" ${state.noFit ? "checked" : ""}>
+        <span class="c-main"><span class="c-t">以上時間都不適合，我想自己提供時間</span></span></label>`}
+    <div class="field ${state.noFit ? "" : "hidden"}" id="customBox">
+      <label for="customTimes">可配合的時段（請提供 2 個）${required ? '<span class="req">*</span>' : ""}</label>
+      <textarea id="customTimes" placeholder="例：&#10;① 11/25（三）晚上 8 點後&#10;② 11/28（六）下午 2～5 點">${esc(state.customTimes)}</textarea>
+      <div class="hint">平日、假日都可以。</div>
+    </div>
+    ${navBtns(2)}`;
+
+  const paint = () => stage.querySelectorAll(".slot").forEach(b => {
+    const i = state.picks.indexOf(b.dataset.id);
+    b.className = "slot" + (i === 0 ? " p1" : i === 1 ? " p2" : "");
+    b.innerHTML = esc(slots.find(x => x.id === b.dataset.id).time) + (i >= 0 ? `<span class="tag">${i === 0 ? "第一志願" : "第二志願"}</span>` : "");
+  });
+  stage.querySelectorAll(".slot").forEach(b => b.onclick = () => {
+    const id = b.dataset.id, i = state.picks.indexOf(id);
+    if (i >= 0) state.picks.splice(i, 1);
+    else if (state.picks.length < 2) state.picks.push(id);
+    else state.picks[1] = id;
+    saveDraft(); paint();
+  });
+  paint();
+  const nf = $("#noFit");
+  if (nf) nf.onchange = () => { state.noFit = nf.checked; $("#customBox").classList.toggle("hidden", !nf.checked); saveDraft(); };
+  $("#customTimes").oninput = e => { state.customTimes = e.target.value; e.target.classList.remove("invalid"); saveDraft(); };
+
+  $("#next").onclick = () => {
+    const custom = state.noFit && state.customTimes.trim();
+    if (required && !state.picks.length && !custom) {
+      if (state.noFit) { $("#customTimes").classList.add("invalid"); toast("請填寫可以配合的時段"); }
+      else toast("請選擇一個時段，或勾選「自己提供時間」");
+      return;
+    }
+    go(4);
+  };
+  bindBack();
+}
+
+// ---------- Step 4 確認 ----------
+function rows() {
+  const s = svc(), p = planObj();
+  const r = [["服務", s.name], ["方案", `${p.label}${p.meta ? "（" + p.meta + "）" : ""}`]];
+  if (state.method) r.push(["溝通方式", state.method]);
+  const ad = s.addons.filter(a => state.addons.has(a.key));
+  if (ad.length) r.push(["加購", ad.map(a => `${a.label} +${money(a.price)}`).join("\n")]);
+  visibleFields().forEach(f => { const v = String(state.values[f.key] || "").trim(); if (v) r.push([f.label.replace(/^\d+\.\s*/, ""), v]); });
+  r.push(["稱呼", state.customer.name], ["LINE 名稱", state.customer.contact]);
+  if (state.customer.phone) r.push(["手機", state.customer.phone]);
+  if (hasSlotStep()) {
+    const labels = state.picks.map((id, i) => `${i === 0 ? "第一志願" : "第二志願"}：${slotLabel(slots.find(x => x.id === id))}`);
+    if (state.noFit && state.customTimes.trim()) labels.push("自己提供：\n" + state.customTimes.trim());
+    r.push(["希望時段", labels.join("\n") || "請 Yura 盡快安排"]);
+  }
+  return r;
+}
+
+function stepConfirm() {
+  const r = rows();
+  stage.innerHTML = `
+    <p>請確認以下資料，送出後就會傳到 Yura 的後台。</p>
+    <div class="summary">${r.map(([k, v]) => `<div class="row"><div class="k">${esc(k)}</div><div class="v">${esc(v)}</div></div>`).join("")}
+      <div class="row total"><div class="k">預估金額</div><div class="v">${money(total())}</div></div></div>
+    <label class="choice" style="margin-top:16px"><input type="checkbox" id="final" ${state.final ? "checked" : ""}>
+      <span class="c-main"><span class="c-t" style="font-weight:400">我是毛孩的主要照顧者，也了解「時間確認後完成全額付款，才算預約成功」。</span></span></label>
+    ${navBtns(hasSlotStep() ? 3 : 2, "送出預約", "submit")}`;
+  const sub = $("#submit");
+  const f = $("#final");
+  sub.disabled = !f.checked;
+  f.onchange = () => { state.final = f.checked; sub.disabled = !f.checked; saveDraft(); };
+  sub.onclick = submit;
+  bindBack();
+}
+
+async function submit() {
+  const sub = $("#submit");
+  sub.disabled = true; sub.innerHTML = '<span class="spinner"></span> 送出中…';
+  const s = svc(), p = planObj();
+  const data = {
+    service: s.key, serviceName: s.name, plan: p.key, planLabel: `${p.label}${p.meta ? "（" + p.meta + "）" : ""}`,
+    price: p.price, total: total(),
+    addons: s.addons.filter(a => state.addons.has(a.key)).map(a => ({ key: a.key, label: a.label, price: a.price })),
+    method: state.method || "",
+    petName: String(state.values.petName || "").trim().slice(0, 200),
+    fields: visibleFields().map(f => ({ key: f.key, label: f.label, value: String(state.values[f.key] || "").trim().slice(0, 3000) })).filter(x => x.value),
+    customer: { name: state.customer.name.trim().slice(0, 100), contact: state.customer.contact.trim().slice(0, 200), phone: state.customer.phone.trim().slice(0, 50) },
+    slotIds: hasSlotStep() ? [...state.picks] : [],
+    slotLabels: hasSlotStep() ? state.picks.map(id => slotLabel(slots.find(x => x.id === id))) : [],
+    customTimes: hasSlotStep() && state.noFit ? state.customTimes.trim().slice(0, 1000) : "",
+    agreed: true
+  };
+  try {
+    state.code = await createBooking(data);
+    state.summary = rows();
+    clearDraft();
+    go(5);
+  } catch (e) {
+    console.error(e);
+    if (e.message === "SLOT_TAKEN") {
+      toast("你選的時段剛好被別人預約了，請重新選擇 🙏");
+      slots = null; state.picks = [];
+      go(3);
+    } else {
+      toast("送出失敗，請稍後再試，或直接到 LINE 告訴我");
+      sub.disabled = false; sub.textContent = "送出預約";
+    }
+  }
+}
+
+// ---------- Step 5 完成 ----------
+function stepDone() {
+  const code = fmtCode(state.code);
+  const statusUrl = new URL("status.html?id=" + state.code, location.href).href;
+  const text = ["【Yura 線上預約】", `預約編號：${code}`, "", ...state.summary.map(([k, v]) => `${k}：${v}`), `預估金額：${money(total())}`, "", "毛孩照片會另外傳送。", `查詢進度：${statusUrl}`].join("\n");
+  const h = lineHref(settings);
+  stage.innerHTML = `
+    <p class="center">已經收到你的預約了，謝謝你 ✨ 你的預約編號是：</p>
+    <div class="code-box">${esc(code)}</div>
+    <div class="note warn"><b>還差最後一步：</b>請按下面的按鈕複製預約資料，回到 LINE 貼給我，並且<b>一起傳毛孩照片</b>。我確認時段後會通知你付款。</div>
+    <div class="row-btns">
+      <button class="btn primary big" id="copy" type="button">複製預約資料</button>
+      ${h ? `<a class="btn line big" href="${h}" target="_blank" rel="noopener">開啟 LINE</a>` : ""}
+    </div>
+    <div class="note">📷 記得準備：${svc().prepare.map(esc).join("；")}</div>
+    <p class="center muted" style="margin-top:16px">之後可以隨時用預約編號 <a href="status.html?id=${state.code}">查詢預約進度</a>。建議截圖保存這個畫面。</p>
+    <div class="row-btns"><a class="btn ghost" href="index.html">回到首頁</a></div>`;
+  $("#copy").onclick = async () => {
+    const ok = await copyText(text);
+    toast(ok ? "已複製 ✨ 回到 LINE 直接貼上就可以了" : "複製失敗，請截圖這個畫面傳給我");
+  };
+}
+
+function render() {
+  header();
+  [stepService, stepMust, stepDetails, stepSlots, stepConfirm, stepDone][state.step]();
+}
+
+(async () => {
+  loadDraft();
+  settings = await getSettings();
+  const q = new URLSearchParams(location.search).get("service");
+  if (q && SERVICES[q] && state.service !== q) {
+    Object.assign(state, { service: q, step: 1, plan: "", method: "", addons: new Set(), agreed: [], picks: [], noFit: false });
+  }
+  const pl = new URLSearchParams(location.search).get("plan");
+  if (pl && svc()?.plans.some(p => p.key === pl)) state.plan = pl;
+  if (!settings.bookingOpen) state.step = 0;
+  if (state.step >= 1 && !svc()) state.step = 0;
+  if (state.step === 5) state.step = 0;
+  if (state.step === 4 && hasSlotStep()) {
+    try { slots = await listOpenSlots(); } catch { slots = []; }
+    const before = state.picks.length;
+    state.picks = state.picks.filter(id => slots.some(x => x.id === id));
+    if (state.picks.length !== before) state.step = 3;
+  }
+  render();
+})();
