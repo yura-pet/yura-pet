@@ -3,14 +3,15 @@
 
 // 套組方案（溝通＋似顏繪）的 key 都以 -art 結尾
 export const isBundle = key => /-art$/.test(key || "");
-// 套組價 = 溝通價 + 這個金額（似顏繪單買手繪 NT$1,680、電繪 NT$1,500）
-const BUNDLE_EXTRA = 1000;
+// 套組價 = 溝通價 + 這個金額（似顏繪單買手繪 NT$1,680、電繪 NT$1,500）；有 bundlePrice 的方案直接用那個價錢
+const BUNDLE_EXTRA = 1200;
 const ART_ALONE = 1500;
 function withBundles(plans, skip = []) {
   const out = plans.map(p => ({ ...p }));
+  out.forEach(p => delete p.bundlePrice);
   plans.filter(p => !skip.includes(p.key)).forEach(p => out.push({
     key: p.key + "-art", label: p.label + "＋似顏繪", meta: (p.meta ? p.meta + "・" : "") + "手繪或電繪任選",
-    price: p.price + BUNDLE_EXTRA, orig: p.price + ART_ALONE, bundle: true
+    price: p.bundlePrice || p.price + BUNDLE_EXTRA, orig: p.price + ART_ALONE, bundle: true
   }));
   return out;
 }
@@ -70,7 +71,7 @@ export const SERVICES = {
     detailUrl: "https://yura-pet.github.io/-yura-pet-deceased/",
     slot: "required",
     plans: withBundles([
-      { key: "basic", label: "離世溝通", meta: "30 分鐘", price: 2200 },
+      { key: "basic", label: "離世溝通", meta: "30 分鐘", price: 2200, bundlePrice: 3000 },
       { key: "salvation", label: "離世溝通＋超度", meta: "含超度後的轉世推算", price: 7200 }
     ]),
     methods: ["照片＋視訊", "照片＋語音", "照片＋文字"],
