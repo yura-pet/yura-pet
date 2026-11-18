@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<title>Yura 圖卡</title>
+<style>
+@font-face{font-family:"ChenYuluoyan";src:url("../ChenYuluoyan.woff2") format("woff2")}
+@font-face{font-family:"Iansui";src:url("../Iansui.woff2") format("woff2")}
+:root{--ink:#314863;--text:#4b647d;--muted:#7d8ea0;--pink:#d79a82;--pink-strong:#cd876d;--soft:#f8e9df;--card:rgba(255,250,246,.93)}
+*{box-sizing:border-box;margin:0}
+body{background:#ddd;font-family:"Iansui","PingFang TC",sans-serif;color:var(--ink)}
+.poster{width:1080px;height:1350px;position:relative;overflow:hidden;padding:64px 64px 56px;display:flex;flex-direction:column;
+  background:linear-gradient(rgba(255,244,238,.80),rgba(255,246,240,.84)),url("../yura-background.jpg") center/cover}
+.head{text-align:center}
+.brand{font-family:"ChenYuluoyan",serif;font-size:40px;color:var(--ink);-webkit-text-stroke:.4px currentColor}
+.brand span{color:var(--pink);font-size:56px;margin-left:10px}
+h1{font-family:"ChenYuluoyan",serif;font-weight:400;font-size:92px;line-height:1.1;margin-top:4px;-webkit-text-stroke:.6px currentColor;letter-spacing:.06em}
+.div{width:160px;height:3px;margin:14px auto 0;background:linear-gradient(90deg,transparent,var(--pink),transparent)}
+.sub{font-size:28px;color:var(--muted);margin-top:12px}
+.body{flex:1;display:flex;flex-direction:column;justify-content:center;gap:22px;margin-top:28px}
+.box{background:var(--card);border-radius:34px;padding:30px 36px;box-shadow:0 18px 40px rgba(120,92,72,.12);border:1px solid rgba(255,255,255,.9)}
+.foot{display:flex;justify-content:space-between;align-items:center;margin-top:26px;font-size:26px;color:var(--muted)}
+.foot b{color:var(--pink-strong);font-size:28px}
+.label{font-size:24px;font-weight:700;color:#8a6e65;letter-spacing:.12em;margin-bottom:14px}
+
+/* 1 流程 */
+.solve{display:grid;grid-template-columns:1fr 1fr;gap:14px 22px}
+.solve div{font-size:26px;line-height:1.5;color:var(--text)}
+.solve b{display:block;font-size:30px;color:var(--ink)}
+.solve .wide{grid-column:1/-1}
+.steps{display:grid;gap:14px;counter-reset:s}
+.st{display:grid;grid-template-columns:56px 1fr;gap:18px;align-items:center;font-size:27px;line-height:1.45;color:var(--text)}
+.st::before{counter-increment:s;content:counter(s);width:52px;height:52px;border-radius:50%;display:grid;place-items:center;background:var(--soft);color:var(--ink);font-weight:700;font-size:28px}
+.st b{color:var(--ink);font-size:30px}
+
+#p1 h1{font-size:80px}
+.tight{gap:16px;margin-top:18px}
+.tight .box{padding:24px 32px}
+.tight .steps{gap:9px}
+.tight .st{font-size:25px}
+.tight .st b{font-size:27px}
+.tight .st::before{width:44px;height:44px;font-size:24px}
+.tight .st{grid-template-columns:46px 1fr}
+.tight .solve{gap:10px 20px}
+.tight .solve div{font-size:24px}
+.tight .solve b{font-size:27px}
+/* 2 方案 */
+.svc{display:grid;gap:6px}
+.svc+.svc{margin-top:16px;padding-top:16px;border-top:2px dashed rgba(126,149,174,.2)}
+.svc-h{font-size:32px;font-weight:700;color:var(--ink);margin-bottom:2px}
+.row{display:flex;justify-content:space-between;align-items:baseline;gap:16px;font-size:27px;color:var(--text)}
+.row .p{font-weight:700;color:var(--pink-strong);white-space:nowrap;font-size:30px}
+.row small{font-size:21px;color:var(--muted);margin-left:8px}
+.row.add{font-size:23px}.row.add .p{font-size:25px}
+.combo{margin-top:4px;text-align:center;font-size:27px;padding:16px;border-radius:24px;background:linear-gradient(135deg,#fde9de,#fff6f0);border:2px dashed rgba(205,135,109,.5);color:var(--ink)}
+.combo b{color:var(--pink-strong)}
+
+/* 3 時間 */
+.tday{font-size:36px;font-weight:700;color:var(--ink);margin-bottom:18px}
+.tday small{font-size:26px;color:var(--muted);font-weight:400;margin-left:10px}
+.times{display:flex;flex-wrap:wrap;gap:16px}
+.times span{min-width:180px;text-align:center;padding:18px 0;border-radius:24px;background:var(--soft);font-size:44px;font-weight:700;color:var(--ink);font-variant-numeric:tabular-nums}
+.notes{display:grid;gap:12px;font-size:26px;line-height:1.5;color:var(--text)}
+.notes div{padding-left:34px;position:relative}
+.notes div::before{content:"✦";position:absolute;left:0;color:var(--pink)}
+.notes b{color:var(--ink)}
+</style>
+</head>
+<body>
+
+<!-- 1 服務流程 -->
+<section class="poster" id="p1">
+  <div class="head">
+    <div class="brand">寵物溝通師<span>Yura</span></div>
+    <h1>服務流程</h1><div class="div"></div>
+    <div class="sub">很多時候不是牠不乖，而是有話想說</div>
+  </div>
+  <div class="body tight">
+    <div class="box">
+      <div class="label">我能幫你解決什麼</div>
+      <div class="solve">
+        <div><b>🐾 行為問題</b>亂尿、焦慮、黏人、叫不停、打架、挑食</div>
+        <div><b>💭 想更懂牠</b>牠的情緒、需求，和想對你說的話</div>
+        <div><b>🕊️ 牠離開了</b>把話說完，放下愧疚，好好告別</div>
+        <div><b>🧭 牠走失了</b>確認生死，整理方位與搜尋線索</div>
+        <div class="wide"><b>🎨 想把牠留下來</b>手繪似顏繪，含框寄到你手上</div>
+      </div>
+    </div>
+    <div class="box">
+      <div class="label">預約步驟</div>
+      <div class="steps">
+        <div class="st"><div><b>選擇服務</b>　依毛孩目前的狀況選擇</div></div>
+        <div class="st"><div><b>看過重點說明</b>　確認理解後再往下</div></div>
+        <div class="st"><div><b>選方案、填資料、選時段</b></div></div>
+        <div class="st"><div><b>傳到 LINE＋傳照片</b>　資料自動帶進 LINE</div></div>
+        <div class="st"><div><b>確認時間＋完成付款</b>　正式預約成功 ✨</div></div>
+        <div class="st"><div><b>進行溝通</b>　視訊・語音・文字</div></div>
+        <div class="st"><div><b>溝通後</b>　提供錄音或文字紀錄</div></div>
+      </div>
+    </div>
+  </div>
+  <div class="foot"><span>寵物溝通師 Yura・毛孩調解委員</span><b>yura-pet.github.io/yura-pet</b></div>
+</section>
+
+<!-- 2 服務方案 -->
+<section class="poster" id="p2">
+  <div class="head">
+    <div class="brand">寵物溝通師<span>Yura</span></div>
+    <h1>服務方案</h1><div class="div"></div>
+  </div>
+  <div class="body">
+    <div class="box">
+      <div class="svc"><div class="svc-h">🐾 一般寵物溝通</div>
+        <div class="row"><span>單寵（1 隻）<small>20 分鐘</small></span><span class="p">NT$1,680</span></div>
+        <div class="row"><span>多寵（2 隻）<small>共 30 分鐘</small></span><span class="p">NT$2,380</span></div>
+        <div class="row"><span>三寵（3 隻）<small>共 40 分鐘</small></span><span class="p">NT$3,080</span></div>
+        <div class="row add"><span>＋ 緊急溝通</span><span class="p">+NT$1,000</span></div>
+      </div>
+      <div class="svc"><div class="svc-h">🕊️ 離世寵物溝通</div>
+        <div class="row"><span>離世溝通<small>30 分鐘</small></span><span class="p">NT$2,200</span></div>
+        <div class="row"><span>離世溝通＋超度<small>含轉世推算</small></span><span class="p">NT$7,200</span></div>
+        <div class="row add"><span>＋ 確認轉世（炁絡筆／打聖杯）</span><span class="p">+NT$666</span></div>
+      </div>
+      <div class="svc"><div class="svc-h">🧭 找寵服務</div>
+        <div class="row"><span>奇門遁甲找寵方案<small>生死＋報告＋溝通</small></span><span class="p">NT$5,000</span></div>
+        <div class="row"><span>單次溝通<small>不論生死</small></span><span class="p">NT$1,680</span></div>
+        <div class="row"><span>生死測算<small>晚上 9:00 打聖杯</small></span><span class="p">NT$666</span></div>
+      </div>
+      <div class="svc"><div class="svc-h">🎨 似顏繪</div>
+        <div class="row"><span>手繪似顏繪<small>含畫框・含運費</small></span><span class="p">NT$1,500</span></div>
+      </div>
+    </div>
+    <div class="combo">🎨 每個溝通方案都有 <b>＋似顏繪套組</b>，預約時選，比分開買便宜</div>
+  </div>
+  <div class="foot"><span>寵物溝通師 Yura・毛孩調解委員</span><b>yura-pet.github.io/yura-pet</b></div>
+</section>
+
+<!-- 3 可預約時間 -->
+<section class="poster" id="p3">
+  <div class="head">
+    <div class="brand">寵物溝通師<span>Yura</span></div>
+    <h1>可預約時間</h1><div class="div"></div>
+  </div>
+  <div class="body">
+    <div class="box">
+      <div class="tday">平日<small>週一～週五</small></div>
+      <div class="times"><span>11:00</span><span>14:00</span><span>15:00</span><span>19:00</span><span>20:00</span></div>
+    </div>
+    <div class="box">
+      <div class="tday">週末<small>週六、週日</small></div>
+      <div class="times"><span>19:00</span><span>20:00</span></div>
+    </div>
+    <div class="box notes">
+      <div><b>生死測算</b>統一晚上 9:00 打聖杯</div>
+      <div><b>找寵</b>通常比較急，可以不選時段，我會盡快安排</div>
+      <div><b>奇門遁甲、超度</b>需配合道長時間，完成時間無法固定</div>
+      <div>實際時間以 LINE 回覆確認為準</div>
+    </div>
+  </div>
+  <div class="foot"><span>線上預約・選時段・傳到 LINE</span><b>yura-pet.github.io/yura-pet</b></div>
+</section>
+
+</body>
+</html>
