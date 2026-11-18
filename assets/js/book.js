@@ -105,7 +105,7 @@ function stepMust() {
       <span class="c-main"><span class="c-t">${esc(t)}</span></span></label>`).join("")}
     </div>
     <div class="note">想看完整內容（溝通方式、常見問題、注意事項）：
-      <a href="${s.detailUrl}" target="_blank">${esc(s.name)}${s.key === "illustration" ? "作品與說明" : "詳細說明書"} ↗</a>
+      <a href="${s.detailUrl}" target="_blank">${esc(s.name)}${s.key === "illustration" ? "作品" : "詳細說明書"} ↗</a>
     </div>
     <div class="row-btns" style="justify-content:flex-start"><button type="button" class="btn small ghost" id="allOk">全部都看過了，全選</button></div>
     ${navBtns(0, "我了解了，下一步")}`;
@@ -138,8 +138,9 @@ function fieldHtml(f) {
   if (f.type === "textarea") input = `<textarea id="${id}" data-f="${f.key}" placeholder="${esc(f.placeholder || "")}">${esc(v)}</textarea>`;
   else if (f.type === "select") input = `<select id="${id}" data-f="${f.key}"><option value="">請選擇</option>${f.options.map(o => `<option ${o === v ? "selected" : ""}>${esc(o)}</option>`).join("")}</select>`;
   else input = `<input type="text" id="${id}" data-f="${f.key}" value="${esc(v)}" placeholder="${esc(f.placeholder || "")}">`;
-  const full = f.type === "textarea" || f.hint ? "full" : "";
-  return `<div class="field ${full}"><label for="${id}">${esc(f.label)}${req}</label>${input}${f.hint ? `<div class="hint">${esc(f.hint)}</div>` : ""}</div>`;
+  const full = f.type === "textarea" || f.hint || f.image ? "full" : "";
+  const img = f.image ? `<img class="field-img" src="${esc(f.image)}" alt="${esc(f.label)}實拍照" loading="lazy">${f.imageNote ? `<div class="hint">${esc(f.imageNote)}</div>` : ""}` : "";
+  return `<div class="field ${full}"><label for="${id}">${esc(f.label)}${req}</label>${img}${input}${f.hint ? `<div class="hint">${esc(f.hint)}</div>` : ""}</div>`;
 }
 
 function planChoice(p) {

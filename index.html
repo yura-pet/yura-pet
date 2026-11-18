@@ -89,7 +89,7 @@ document.getElementById("svcGrid").innerHTML = SERVICE_ORDER.map(k => {
     <div class="pr">${money(min)} 起</div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
       <a class="btn primary small" href="book.html?service=${k}">預約這項</a>
-      <a class="btn small" href="${s.detailUrl}" ${ext ? 'target="_blank" rel="noopener"' : ""}>${k === "illustration" ? "看作品與說明" : "詳細說明書"}</a>
+      <a class="btn small" href="${s.detailUrl}" ${ext ? 'target="_blank" rel="noopener"' : ""}>${k === "illustration" ? "看作品" : "詳細說明書"}</a>
     </div>
   </div>`;
 }).join("");
