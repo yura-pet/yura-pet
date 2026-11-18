@@ -146,7 +146,7 @@ function fieldHtml(f) {
 
 function planChoice(p) {
   return `<label class="choice ${p.bundle ? "bundle" : ""}"><input type="radio" name="plan" value="${p.key}" ${state.plan === p.key ? "checked" : ""}>
-    <span class="c-main"><span class="c-t">${esc(p.label)}</span><span class="c-m">　${esc(p.meta || "")}</span>${p.desc ? `<span class="c-d">${esc(p.desc)}</span>` : ""}</span>
+    <span class="c-main"><span class="c-t">${esc(p.label)}</span><span class="c-m">　${esc(p.meta || "")}</span>${p.desc ? `<span class="c-d">${esc(p.desc)}</span>` : ""}${p.includes ? `<span class="c-inc"><span class="c-inc-t">包含</span>${p.includes.map(i => `<span>✓ ${esc(i)}</span>`).join("")}</span>` : ""}</span>
     <span class="c-p">${p.orig ? `<s class="orig">${money(p.orig)}</s>` : ""}${money(p.price)}${p.orig ? `<span class="save">省 ${money(p.orig - p.price)}</span>` : ""}</span></label>`;
 }
 function planGroups(s) {
