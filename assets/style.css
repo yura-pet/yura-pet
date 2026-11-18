@@ -246,3 +246,5 @@ a.plan-row:hover{background:rgba(255,240,231,.7)}
 .time-notes{margin-top:14px}
 .time-notes li{font-size:15px;margin-top:4px}
 .time-notes b{color:var(--ink-deep);margin-right:4px}
+.about-hook{font-size:19px;color:var(--ink-deep);margin:4px 0 12px}
+.about-hook span{font-family:var(--title-font);font-size:24px;color:var(--pink-strong);-webkit-text-stroke:.3px currentColor}
