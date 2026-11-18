@@ -73,7 +73,7 @@ function stepService() {
     return;
   }
   stage.innerHTML = `
-    <a class="who-strip" href="index.html#about"><img src="images/yura-avatar.jpg" alt="Yura"><div><b>寵物溝通師 Yura・調解委員</b><span>完成 400+ 場溝通，其中 200+ 場與行為有關。認識我 →</span></div></a>
+    <a class="who-strip" href="index.html#about"><img src="images/yura-avatar.jpg" alt="Yura"><div><b>寵物溝通師 Yura・毛孩調解委員</b><span>完成 400+ 場溝通，其中 200+ 場與行為有關。認識我 →</span></div></a>
     <p>依照毛孩目前的狀況選擇：</p>
     <div class="svc-grid">${SERVICE_ORDER.map(k => {
       const s = SERVICES[k];
