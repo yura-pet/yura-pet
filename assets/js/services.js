@@ -30,7 +30,7 @@ export const SERVICES = {
     name: "一般寵物溝通",
     icon: "🐾",
     short: "想了解毛孩的情緒、需求、想法，或某些行為背後的原因。",
-    detailUrl: "https://yura-pet.github.io/yura-pet-general/",
+    detailUrl: "guide-general.html",
     slot: "required",
     plans: withBundles([
       { key: "single", label: "單寵溝通（1 隻）", meta: "20 分鐘", price: 1680 },
@@ -65,7 +65,7 @@ export const SERVICES = {
     name: "離世寵物溝通",
     icon: "🕊️",
     short: "想把還放在心裡的話說完，理解、傳達，好好告別。",
-    detailUrl: "https://yura-pet.github.io/-yura-pet-deceased/",
+    detailUrl: "guide-deceased.html",
     slot: "required",
     plans: withBundles([
       { key: "basic", label: "離世溝通", meta: "30 分鐘", price: 2200, bundlePrice: 3000 },
@@ -106,7 +106,7 @@ export const SERVICES = {
     name: "找寵服務",
     icon: "🧭",
     short: "毛孩走失、失聯，或想確認牠現在的狀態與方向。",
-    detailUrl: "https://yura-pet.github.io/-yura-pet-search/",
+    detailUrl: "guide-search.html",
     slot: "optional",
     slotHint: "找寵通常比較急，可以不選時段，我會盡快安排；生死測算統一在晚上 9:00 打聖杯。",
     planNote: "💡 找寵前，建議先確認毛孩的生死。知道生死之後，接下來會想做的事常常不一樣：有人會選擇放下，也有人反而更想把牠找回來。所以第一次來，多數人會先從生死測算開始。",

@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width,initial-scale=1" name="viewport"/>
+<meta content="#f8f1f4" name="theme-color"/>
+<title>Yura｜找寵服務事前說明書</title>
+<style>
+
+@font-face {
+  font-family: "ChenYuluoyan";
+  src: url("./ChenYuluoyan.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Iansui";
+  src: url("./Iansui.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+
+:root{
+  --ink:#354a62;
+  --ink-deep:#314863;
+  --text:#4b647d;
+  --pink:#d79a82;
+  --pink-soft:rgba(248,233,223,.92);
+  --pink-soft-2:rgba(252,242,235,.94);
+  --white-card:rgba(255,250,246,.90);
+  --line:rgba(126,149,174,.20);
+  --shadow:0 16px 38px rgba(120,92,72,.12);
+  --title-font:"ChenYuluoyan","PingFang TC","Noto Serif TC",serif;
+  --body-font:"Iansui","PingFang TC","Noto Sans TC",sans-serif;
+  --num-font:"Iansui","PingFang TC",sans-serif;
+}
+
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  font-family: "Iansui","PingFang TC","Noto Sans TC",sans-serif;
+  margin:0;
+  color:var(--ink);
+  font-family:var(--body-font);
+  line-height:1.95;
+  -webkit-font-smoothing:antialiased;
+  text-rendering:optimizeLegibility;
+  background:
+    linear-gradient(rgba(255,244,238,.74), rgba(255,246,240,.74)),
+    url("yura-background.jpg") center top / cover fixed no-repeat;
+}
+
+.wrap{
+  font-family:var(--body-font);
+  width:min(880px, calc(100% - 24px));
+  margin:0 auto;
+  padding:18px 0 34px;
+}
+
+.header{
+  text-align:center;
+  padding:22px 12px 30px;
+  background:linear-gradient(180deg, rgba(255,239,228,.62), rgba(255,246,240,.22));
+  border-radius:28px;
+  backdrop-filter: blur(5px);
+}
+
+.brandline{
+  display:flex;
+  align-items:flex-end;
+  justify-content:center;
+  gap:12px;
+  flex-wrap:wrap;
+  margin-bottom:8px;
+}
+
+.brandline-cn{
+  font-family:var(--title-font);
+  font-size:clamp(28px,5vw,44px);
+  font-weight:700;
+  color:var(--ink-deep);
+  letter-spacing:.06em;
+  line-height:1;
+  text-shadow:0 1px 0 rgba(255,255,255,.55);
+}
+
+.brandline-yura{
+  font-family:var(--title-font);
+  font-size:clamp(40px,6.3vw,66px);
+  color:var(--pink);
+  font-weight:700;
+  line-height:1;
+  letter-spacing:.02em;
+  text-shadow:0 1px 0 rgba(255,255,255,.48);
+}
+
+.title-wrap{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:8px;
+}
+
+.main-title{
+  margin:8px 0 0;
+  font-family:var(--title-font);
+  font-size:clamp(38px,7.2vw,62px);
+  font-weight:700;
+  color:var(--ink-deep);
+  letter-spacing:.08em;
+  line-height:1.12;
+  text-shadow:0 2px 0 rgba(255,255,255,.42);
+}
+
+.title-divider{
+  width:118px;
+  height:2px;
+  background:linear-gradient(90deg, transparent, rgba(215,154,130,.85), transparent);
+  margin:2px 0;
+}
+
+.title-sub{
+  font-family:var(--title-font);
+  font-size:clamp(18px,3.2vw,22px);
+  color:#60758e;
+  letter-spacing:.22em;
+  font-weight:700;
+}
+
+.subline{
+  margin:10px auto 0;
+  max-width:560px;
+  color:#6d7e90;
+  font-size:17px;
+  line-height:1.9;
+  text-shadow:0 1px 0 rgba(255,255,255,.35);
+}
+
+.price{
+  margin-top:18px;
+  display:inline-flex;
+  align-items:center;
+  gap:12px;
+  padding:10px 18px;
+  border-radius:999px;
+  background:linear-gradient(180deg, var(--pink-soft), var(--pink-soft-2));
+  color:var(--ink-deep);
+  box-shadow:0 8px 22px rgba(104,95,109,.08);
+}
+
+.price span{
+  font-family:var(--body-font);
+  font-size:16px;
+  color:var(--ink-deep);
+  letter-spacing:.02em;
+  font-weight:700;
+}
+
+.price b{
+  font-family:var(--body-font);
+  font-size:21px;
+  color:var(--ink-deep);
+  letter-spacing:.02em;
+  font-weight:700;
+}
+
+.cards{
+  display:grid;
+  gap:16px;
+}
+
+.card{
+  background:var(--white-card);
+  border:1px solid rgba(255,255,255,.85);
+  box-shadow:var(--shadow);
+  backdrop-filter:blur(8px);
+  border-radius:26px;
+  padding:3cm;
+  position:relative;
+}
+
+.card::before{
+  content:"";
+  position:absolute;
+  inset:10px;
+  border:1px dashed rgba(126,149,174,.12);
+  border-radius:22px;
+  pointer-events:none;
+}
+
+.card h2{
+  margin:0 0 14px;
+  font-size:27px;
+  color:var(--ink-deep);
+  font-weight:400;
+  font-family:var(--title-font);
+  letter-spacing:.06em;
+  position:relative;
+  z-index:1;
+}
+
+.card h3{
+  margin:16px 0 6px;
+  font-size:20px;
+  color:var(--ink-deep);
+  font-weight:400;
+  font-family:var(--title-font);
+  letter-spacing:.03em;
+  position:relative;
+  z-index:1;
+}
+
+p, li, .a, .item, .note, .chip, .q{
+  position:relative;
+  z-index:1;
+}
+
+p{
+  margin:8px 0;
+  color:var(--text);
+  font-size:18px;
+}
+
+ul{
+  margin:10px 0;
+  padding-left:1.25em;
+}
+
+li{
+  font-family:var(--body-font);
+  margin:6px 0;
+  color:var(--text);
+  font-size:18px;
+}
+
+.note{
+  font-family:var(--body-font);
+  margin-top:12px;
+  padding:14px 16px;
+  background:linear-gradient(180deg, var(--pink-soft), rgba(250,236,228,.82));
+  border-radius:16px;
+  font-size:17px;
+  color:var(--text);
+}
+
+.item{
+  font-family:var(--body-font);
+  padding:12px 0;
+  border-top:1px dashed var(--line);
+  color:var(--text);
+  font-size:18px;
+}
+
+.item:first-child{border-top:0}
+
+.label{
+  font-weight:700;
+  color:var(--ink-deep);
+  font-family:var(--title-font);
+  letter-spacing:.02em;
+}
+
+.chips{
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px;
+  margin-top:6px;
+}
+
+.chip{
+  font-family:var(--body-font);
+  display:inline-block;
+  background:linear-gradient(180deg, var(--pink-soft), var(--pink-soft-2));
+  border-radius:999px;
+  padding:7px 12px;
+  font-size:15px;
+  color:var(--ink-deep);
+  font-family:var(--num-font);
+  letter-spacing:.03em;
+}
+
+.qa{
+  padding:12px 0;
+  border-top:1px solid var(--line);
+}
+
+.qa:first-child{border-top:0}
+
+.q{
+  font-family:var(--title-font);
+  font-weight:900;
+  color:var(--ink-deep);
+  margin-bottom:5px;
+  font-size:18px;
+  letter-spacing:.02em;
+}
+
+.a{
+  font-family:var(--body-font);
+  color:var(--text);
+  font-size:18px;
+}
+
+.footer{
+  text-align:center;
+  color:#7e8592;
+  font-size:12px;
+  padding-top:18px;
+  font-family:var(--num-font);
+  letter-spacing:.06em;
+}
+
+@media (max-width:960px){
+  .card{padding:2.2cm;}
+}
+
+@media (max-width:720px){
+  .wrap{width:min(100% - 18px, 880px)}
+  .header{padding:10px 6px 20px}
+  .card{padding:1.35cm; border-radius:20px}
+  .card::before{inset:8px; border-radius:16px;}
+  .card h2{font-size:27px}
+  .card h3{font-size:18px}
+  p, li, .a, .item{font-size:15px}
+  .main-title{font-size:30px}
+  .title-sub{letter-spacing:.16em}
+  .price span{font-size:16px}
+  .price b{font-size:22px}
+}
+
+.price-text{
+  font-family:var(--body-font) !important;
+  font-weight:700;
+  letter-spacing:.02em;
+}
+
+
+.emph{
+  font-family:var(--body-font) !important;
+  font-weight:800 !important;
+  font-size:1.12em;
+  color:var(--ink-deep);
+  letter-spacing:.01em;
+}
+.emph-block{
+  font-family:var(--body-font) !important;
+  font-weight:800 !important;
+  font-size:1.12em;
+  color:var(--ink-deep);
+  letter-spacing:.01em;
+  display:inline-block;
+}
+.important-list{
+  margin:8px 0 0;
+  padding-left:1.2em;
+}
+.important-list li{
+  margin:10px 0;
+}
+
+
+/* Font hardening for Safari / GitHub Pages */
+h1, h2, .hero-title, .section-title {
+  font-family: "ChenYuluoyan","PingFang TC","Noto Serif TC",serif !important;
+  font-weight: 400 !important;
+  -webkit-text-stroke: 0.35px currentColor;
+}
+h3, p, li, .item, .note, .qa, .q, .a, .emph, .emph-block, .price, .pill {
+  font-family: "Iansui","PingFang TC","Noto Sans TC",sans-serif !important;
+}
+
+
+/* Fillable reservation form */
+.form-grid{
+  display:grid;
+  gap:15px;
+}
+.form-field{
+  display:grid;
+  gap:7px;
+}
+.form-field label{
+  font-family:var(--body-font);
+  font-weight:700;
+  color:var(--ink-deep);
+  font-size:18px;
+}
+.form-field input,
+.form-field select,
+.form-field textarea{
+  width:100%;
+  border:1px solid rgba(126,149,174,.25);
+  border-radius:14px;
+  background:rgba(255,255,255,.72);
+  color:var(--ink-deep);
+  font-family:var(--body-font);
+  font-size:17px;
+  line-height:1.55;
+  padding:12px 14px;
+  outline:none;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.62);
+  -webkit-appearance:none;
+}
+.form-field textarea{
+  min-height:120px;
+  resize:vertical;
+}
+.form-field input:focus,
+.form-field select:focus,
+.form-field textarea:focus{
+  border-color:rgba(215,154,130,.72);
+  box-shadow:0 0 0 3px rgba(215,154,130,.12);
+}
+.form-help{
+  margin-top:2px;
+  font-size:15px;
+  color:#718399;
+}
+.copy-button{
+  width:100%;
+  margin-top:6px;
+  min-height:48px;
+  border:1px solid rgba(215,154,130,.32);
+  border-radius:999px;
+  background:linear-gradient(180deg,rgba(248,233,223,.98),rgba(252,242,235,.98));
+  color:var(--ink-deep);
+  font-family:var(--body-font);
+  font-size:18px;
+  font-weight:700;
+  cursor:pointer;
+  box-shadow:0 8px 20px rgba(120,92,72,.09);
+}
+.copy-button:active{transform:translateY(1px)}
+.copy-status{
+  min-height:1.6em;
+  margin-top:8px;
+  text-align:center;
+  color:#718399;
+  font-size:15px;
+}
+@media(max-width:720px){
+  .form-field label,.copy-button{font-size:17px}
+  .form-field input,.form-field select,.form-field textarea{font-size:16px}
+}
+
+#qimenFields[hidden],#normalSearchFields[hidden],#normalPhotoHelp[hidden]{display:none !important}
+#qimenFields>.form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+@media(max-width:720px){#qimenFields>.form-grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body><a href="index.html" style="position:fixed;top:calc(10px + env(safe-area-inset-top,0px));left:12px;z-index:50;padding:6px 14px;border-radius:999px;background:rgba(255,246,240,.92);border:1px solid rgba(215,154,130,.35);color:#314863;text-decoration:none;font-size:15px;box-shadow:0 4px 12px rgba(120,92,72,.1)">← 服務總覽</a>
+<div class="wrap">
+<header class="header">
+<div class="brandline">
+<div class="brandline-cn">寵物溝通師</div>
+<div class="brandline-yura">Yura</div>
+</div>
+<div class="title-wrap">
+<div class="main-title">找寵服務</div>
+<div class="title-divider"></div>
+<div class="title-sub">事 前 說 明 書</div>
+</div>
+<p class="subline">找寵主服務｜奇門遁甲<br/>從生死測算、卦象線索到寵物溝通一起整理。</p>
+</header>
+<main class="cards">
+<section class="card"><h2>奇門遁甲找寵服務</h2><p><span class="emph-block">主要找寵方案</span></p><p>這是目前找寵服務中最主要的方案，會把不同階段需要的資訊一起整理，而不是只單看其中一項。</p><div class="item"><h3><span class="emph">方案包含</span></h3><p>① 生死測算</p><p>② 奇門遁甲找寵報告</p><p>③ 單次溝通 1 次</p></div><div class="note"><span class="emph">三項需搭配一起進行。</span><br/><br/>奇門遁甲會提供找寵的方位、環境與搜尋線索；搭配生死測算與一次寵物溝通，協助了解毛孩目前的狀態、想法與周圍附近的情況。</div><h3><span class="emph">奇門遁甲可以協助什麼？</span></h3><p>卦象會整理與搜尋有關的方向與線索，例如可能的方位、周圍環境、關鍵物件或其他可供實際搜尋時參考的資訊。</p><p>方案也包含教你怎麼看、怎麼使用這份報告，讓你拿到資料後知道接下來可以怎麼配合實際搜尋。</p><div class="note">🪞 測算需配合道長的安排進行，實際完成時間無法固定，請耐心等候。<br/><br/><span class="emph">找寵服務不保證尋回，卦象、測算與溝通皆作為搜尋輔助，仍需搭配實際行動。</span></div></section>
+<section class="card"><h2>單次溝通</h2><p>這項服務主要適合以下兩種情況：</p><ul><li><span class="emph">走失未超過 1 天</span>，希望先了解毛孩目前的狀態與周圍附近。</li><li><span class="emph">已經使用奇門遁甲找寵方案</span>，之後想再次確認毛孩的狀態、想法與周圍附近。</li></ul><p>溝通時我會盡量感受與整理毛孩目前的身心狀態、周圍附近、離開原因與想表達的內容。</p><div class="note"><span class="emph">1 次，溝通報告完成後即結案。</span><br/><br/>毛孩會持續移動，因此溝通看到的是當下資訊，不能視為 GPS 精準定位。</div></section>
+<section class="card"><h2>生死測算</h2><p><span class="emph-block">統一晚上 9:00 打聖杯</span></p><div class="note"><span class="emph">找寵的第一步，就是先確認生死。</span><br/><br/>因為每個人在知道生死之後，接下來要做的決定都會不一樣，所以會先從這一步開始。</div><h3><span class="emph">這一項處理什麼？</span></h3><p>主要處理兩種狀況：</p><ol class="important-list"><li>毛孩走丟很久，或送養後已經不在身邊，不確定牠現在還在不在。</li><li>想確認現在養的這一隻，是不是以前那一隻回來了。</li></ol><h3><span class="emph">為什麼要走這一項？</span></h3><p>依照目前的服務方式，我們可以非常明確地確認一隻動物的生死狀態，但不會直接由溝通者自己的嘴巴去宣告牠的生與死，主要是為了避免牽涉因果。</p><p>因此會透過<span class="emph">打聖杯</span>的方式來進行確認。</p><p>奇門遁甲找寵方案 中已包含這一項，不需要另外加購。</p></section>
+<section class="card"><h2>找寵前先知道</h2><h3><span class="emph">資訊會移動、會變化</span></h3><p>毛孩會移動，因此溝通當下看到的環境、方向與狀態，都可能隨時間改變。</p><h3><span class="emph">不是 GPS 定位</span></h3><p>溝通與奇門遁甲提供的是搜尋方向、環境與狀態等輔助資訊，不能當成精準定位。</p><h3><span class="emph">一定要搭配實際搜尋</span></h3><p>請同步外出尋找、張貼協尋、詢問附近住戶／店家、調閱監視器等。服務提供線索與方向，但不保證尋回。</p></section>
+
+
+</main>
+<div class="footer">© Yura Pet Communication</div>
+</div>
+
+<div style="position:fixed;left:0;right:0;bottom:0;z-index:50;padding:10px 16px calc(10px + env(safe-area-inset-bottom,0px));display:flex;justify-content:center;background:linear-gradient(180deg,rgba(255,246,240,0),rgba(255,246,240,.96) 40%)"><a href="book.html?service=search" style="flex:1;max-width:340px;text-align:center;padding:14px 20px;border-radius:999px;background:#cd876d;color:#fff;font-weight:700;font-size:18px;text-decoration:none;box-shadow:0 8px 18px rgba(205,135,109,.3)">看完了，線上預約</a></div><div style="height:90px"></div></body>
+</html>

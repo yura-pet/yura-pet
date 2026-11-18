@@ -105,7 +105,7 @@ function stepMust() {
       <span class="c-main"><span class="c-t">${esc(t)}</span></span></label>`).join("")}
     </div>
     <div class="note">想看完整內容（溝通方式、常見問題、注意事項）：
-      <a href="${s.detailUrl}" ${ext ? 'target="_blank" rel="noopener"' : 'target="_blank"'}>${esc(s.name)}${ext ? "詳細說明書" : "作品與說明"} ↗</a>
+      <a href="${s.detailUrl}" target="_blank">${esc(s.name)}${s.key === "illustration" ? "作品與說明" : "詳細說明書"} ↗</a>
     </div>
     <div class="row-btns" style="justify-content:flex-start"><button type="button" class="btn small ghost" id="allOk">全部都看過了，全選</button></div>
     ${navBtns(0, "我了解了，下一步")}`;

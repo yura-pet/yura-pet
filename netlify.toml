@@ -4,7 +4,7 @@
   publish = "."
   functions = "netlify/functions"
   # 把客人用的預約網站複製到 /site/，方便在同一個網址預覽
-  command = "rm -rf site && mkdir site && cp -r ../index.html ../book.html ../status.html ../illustration.html ../admin.html ../assets ../images ../ChenYuluoyan.woff2 ../Iansui.woff2 ../yura-background.jpg site/"
+  command = "rm -rf site && mkdir site && cp -r ../*.html ../assets ../images ../ChenYuluoyan.woff2 ../Iansui.woff2 ../yura-background.jpg site/"
 
 [[headers]]
   for = "/*"
