@@ -138,15 +138,23 @@ function fieldHtml(f) {
 
 function planChoice(p) {
   return `<label class="choice ${p.bundle ? "bundle" : ""}"><input type="radio" name="plan" value="${p.key}" ${state.plan === p.key ? "checked" : ""}>
-    <span class="c-main"><span class="c-t">${p.bundle ? "🎨 " : ""}${esc(p.label)}</span><span class="c-m">　${esc(p.meta || "")}</span></span>
-    <span class="c-p">${money(p.price)}</span></label>`;
+    <span class="c-main"><span class="c-t">${esc(p.label)}</span><span class="c-m">　${esc(p.meta || "")}</span></span>
+    <span class="c-p">${p.orig ? `<s class="orig">${money(p.orig)}</s>` : ""}${money(p.price)}${p.orig ? `<span class="save">省 ${money(p.orig - p.price)}</span>` : ""}</span></label>`;
+}
+function planGroups(s) {
+  const solo = s.plans.filter(p => !p.bundle), combo = s.plans.filter(p => p.bundle);
+  if (!combo.length) return `<div class="choices">${solo.map(planChoice).join("")}</div>`;
+  return `<div class="plan-group"><div class="pg-title">只要溝通</div><div class="choices">${solo.map(planChoice).join("")}</div></div>
+    <div class="plan-group combo"><div class="pg-title">🎨 溝通＋似顏繪套組 <span class="pg-tag">比分開買便宜</span></div>
+    <div class="pg-desc">溝通完，把毛孩的樣子一起畫下來。手繪（含框含運）或電繪任選。</div>
+    <div class="choices">${combo.map(planChoice).join("")}</div></div>`;
 }
 
 function stepDetails() {
   const s = svc();
   stage.innerHTML = `
     <div class="lbl">方案<span class="req">*</span></div>
-    <div class="choices" id="plans">${s.plans.map(planChoice).join("")}</div>
+    <div id="plans">${planGroups(s)}</div>
     ${s.methods ? `<div class="field"><div class="lbl">溝通方式<span class="req">*</span></div>
       <div class="choices inline">${s.methods.map(m => `<label class="choice"><input type="radio" name="method" value="${esc(m)}" ${state.method === m ? "checked" : ""}><span class="c-main"><span class="c-t">${esc(m)}</span></span></label>`).join("")}</div>
       ${s.methodHint ? `<div class="hint">${esc(s.methodHint)}</div>` : ""}</div>` : ""}

@@ -16,7 +16,6 @@
   <h1 class="hero-title">服務總覽</h1>
   <div class="divider"></div>
   <p class="hero-sub">動物溝通 × 離世陪伴 × 找寵協尋 × 似顏繪</p>
-  <p class="hero-copy" style="margin-top:6px"><b>🎨 離世溝通＋似顏繪</b>：NT$3,000，溝通完把毛孩的樣子好好畫下來。</p>
   <p class="hero-copy">不論是在世、離世，或正在等待回家的毛孩，<br>先選擇目前的狀況，就可以直接線上預約。</p>
   <div class="hero-cta">
     <a class="btn primary big" href="book.html">立即線上預約</a>
@@ -88,7 +87,6 @@ document.getElementById("svcGrid").innerHTML = SERVICE_ORDER.map(k => {
     <div class="nm"><span class="ic">${s.icon}</span> ${esc(s.name)}</div>
     <div class="ds">${esc(s.short)}</div>
     <div class="pr">${money(min)} 起</div>
-    ${s.plans.some(p => p.bundle) ? `<div class="ds">🎨 ${esc(s.plans.find(p => p.bundle).label)} ${money(s.plans.find(p => p.bundle).price)}</div>` : s.addons.some(a => a.key === "art") ? `<div class="ds">🎨 可加購似顏繪 +${money(1500)}</div>` : ""}
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
       <a class="btn primary small" href="book.html?service=${k}">預約這項</a>
       <a class="btn small" href="${s.detailUrl}" ${ext ? 'target="_blank" rel="noopener"' : ""}>${ext ? "詳細說明書" : "看作品與說明"}</a>
