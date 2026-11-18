@@ -21,6 +21,7 @@ export const CONFIG = {
     lineUrl: "https://lin.ee/pYoY3ar",   // LINE 官方帳號加好友連結
     lineId: "@052mhzeh",               // LINE 官方帳號 ID（用來自動帶入預約資料）
     bookingOpen: true,
+    dailyTimes: ["11:00", "14:00", "15:00", "19:00", "20:00"],   // 每天開放的預約時段
     closedMessage: "目前暫停開放線上預約，請先到 LINE 詢問 🙏",
     announcement: "",
     paymentInfo: "時間確認後，我會在 LINE 提供付款資訊。完成全額付款後，才視為預約成功 ✨"

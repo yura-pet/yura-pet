@@ -41,20 +41,22 @@ const LS = {
   get(k, d) { try { return JSON.parse(localStorage.getItem("yura_demo_" + k)) ?? d; } catch { return d; } },
   set(k, v) { try { localStorage.setItem("yura_demo_" + k, JSON.stringify(v)); } catch {} window.dispatchEvent(new Event("yura-demo-change")); }
 };
+const SEED_VERSION = 2;
 function demoSeedSlots() {
-  if (LS.get("seeded", false)) return;
-  const slots = {};
+  if (LS.get("seeded", 0) === SEED_VERSION) return;
+  // 保留客人已經選走的時段，其他依照每天固定時段重新產生
+  const slots = Object.fromEntries(Object.entries(LS.get("slots", {})).filter(([, s]) => s.status !== "open"));
   const now = Date.now();
-  for (let i = 1; i <= 10; i++) {
+  for (let i = 1; i <= 14; i++) {
     const d = new Date(now + i * 86400e3 + 8 * 3600e3);
     const date = d.toISOString().slice(0, 10);
-    for (const time of ["14:00", "20:00"]) {
-      const id = newCode();
-      slots[id] = { date, time, at: slotAt(date, time), status: "open" };
+    for (const time of CONFIG.defaults.dailyTimes) {
+      if (Object.values(slots).some(s => s.date === date && s.time === time)) continue;
+      slots[newCode()] = { date, time, at: slotAt(date, time), status: "open" };
     }
   }
   LS.set("slots", slots);
-  LS.set("seeded", true);
+  LS.set("seeded", SEED_VERSION);
 }
 function onDemo(cb) {
   const h = () => cb();

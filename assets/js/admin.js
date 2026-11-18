@@ -274,10 +274,11 @@ function planSlots() {
 const preview = () => { const n = planSlots().length; $("#sPreview").textContent = n ? `將新增 ${n} 個時段（已存在的會自動略過）` : "請選擇日期並填寫時間"; };
 ["#sFrom", "#sTo", "#sTimes"].forEach(s => $(s).oninput = preview);
 $("#sWd").onchange = preview;
+preview();
 $("#sAdd").onclick = async () => {
   const arr = planSlots();
   if (!arr.length) return toast("沒有要新增的時段");
-  try { await adminWrite({ newSlots: arr }); toast(`已新增 ${arr.length} 個時段`); $("#sTimes").value = ""; preview(); } catch (e) { showErr(e); }
+  try { await adminWrite({ newSlots: arr }); toast(`已新增 ${arr.length} 個時段`); preview(); } catch (e) { showErr(e); }
 };
 $("#showPast").onchange = renderSlots;
 
