@@ -16,6 +16,9 @@ const SERVICES = [
   "似顏繪｜手繪", "其他"
 ];
 const STATUS = { booked: "已預約", done: "已完成", cancelled: "已取消" };
+const ART_STATUS = { queue: "排單中", drawing: "繪製中", ready: "完成待寄出", shipped: "已寄出" };
+const ART_ORDER = ["queue", "drawing", "ready", "shipped"];
+const FRAMES = ["大一點的框｜壓克力胡桃木", "小一點的框｜玻璃胡桃木", "小一點的框｜玻璃原木色"];
 const TIMES = []; for (let m = 10 * 60; m <= 24 * 60; m += 30) TIMES.push(`${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`);
 const WD = ["日", "一", "二", "三", "四", "五", "六"];
 
@@ -52,7 +55,8 @@ const PW_KEY = "yura_mgr_pw", LOCAL_KEY = "yura_mgr_local", CACHE_KEY = "yura_mg
 const ls = { get(k) { try { return localStorage.getItem(k); } catch { return null; } }, set(k, v) { try { localStorage.setItem(k, v); } catch {} }, del(k) { try { localStorage.removeItem(k); } catch {} } };
 let mode = "cloud"; // cloud | local
 let password = ls.get(PW_KEY) || sessionStorage.getItem(PW_KEY) || "";
-let DB = { bookings: [], customers: [] };
+let DB = { bookings: [], customers: [], arts: [] };
+const fixDB = () => { DB.bookings ||= []; DB.customers ||= []; DB.arts ||= []; };
 
 async function api(method, path, body) {
   const r = await fetch("/api/" + path, {
@@ -67,10 +71,10 @@ function persistLocal() { if (mode === "local") ls.set(LOCAL_KEY, JSON.stringify
 function setSync(t) { $("#syncState").textContent = t; }
 
 async function loadAll() {
-  if (mode === "local") { try { DB = JSON.parse(ls.get(LOCAL_KEY)) || DB; } catch {} render(); return; }
+  if (mode === "local") { try { DB = JSON.parse(ls.get(LOCAL_KEY)) || DB; } catch {} fixDB(); render(); return; }
   setSync("同步中…");
   const d = await api("GET", "data");
-  DB = { bookings: d.bookings || [], customers: d.customers || [] };
+  DB = { bookings: d.bookings || [], customers: d.customers || [], arts: d.arts || [] };
   persistLocal(); render();
   setSync("已同步 " + nowHM());
 }
@@ -114,7 +118,7 @@ async function boot() {
     setSync("本機模式");
     $("#mLogout").classList.add("hidden");
   } else {
-    try { const c = JSON.parse(ls.get(CACHE_KEY)); if (c) { DB = c; render(); } } catch {}
+    try { const c = JSON.parse(ls.get(CACHE_KEY)); if (c) { DB = c; fixDB(); render(); } } catch {}
   }
   try { await loadAll(); } catch (e) { setSync("⚠️ 無法同步"); toast("讀取資料失敗：" + e.message); render(); }
 }
@@ -158,6 +162,7 @@ function render() {
   renderToday(); renderCal(); renderDay(); renderUpcoming(); renderUnpaid();
   if (tab === "customers") renderCustomers();
   if (tab === "stats") renderStats();
+  renderArts();
   $("#dl_customers").innerHTML = DB.customers.map(c => `<option value="${esc(c.name)}">`).join("");
 }
 
@@ -173,7 +178,8 @@ function renderToday() {
   const list = DB.bookings.filter(b => b.date === t).sort(byTime);
   const live = list.filter(active);
   const nextB = live.find(b => b.time >= now && b.status === "booked");
-  $("#todaySum").textContent = live.length ? `共 ${live.length} 個預約` : "";
+  const artsToday = DB.arts.filter(a => a.due === t && a.status !== "shipped" && a.status !== "ready").length;
+  $("#todaySum").textContent = [live.length ? `共 ${live.length} 個預約` : "", artsToday ? `🎨 今天要完成 ${artsToday} 幅` : ""].filter(Boolean).join("・");
   $("#todayList").innerHTML = list.length ? list.map(b => `
     <button type="button" class="tcard ${b === nextB ? "next" : ""} ${b.time < now && b !== nextB ? "past" : ""} ${b.status === "cancelled" ? "cancelled" : ""}" data-bk="${b.id}">
       <div class="tt">${esc(b.time)}</div>
@@ -189,6 +195,8 @@ function renderCal() {
   const t = todayStr();
   const map = {};
   DB.bookings.forEach(b => (map[b.date] ||= []).push(b));
+  const artMap = {};
+  DB.arts.filter(a => a.due && a.status !== "shipped").forEach(a => (artMap[a.due] ||= []).push(a));
   let html = "";
   for (let i = 0; i < 42; i++) {
     const d = new Date(start.getFullYear(), start.getMonth(), start.getDate() + i);
@@ -201,6 +209,7 @@ function renderCal() {
       <div class="dn"><span>${d.getDate()}</span>${n ? `<em>${n}</em>` : ""}</div>
       ${show.map(b => `<div class="chip st-${b.status} ${active(b) && pay(b).st !== "paid" ? "unpaid" : ""}"><b>${esc(b.time)}</b><span>${esc(b.pet)}</span></div>`).join("")}
       ${list.length > 3 ? `<div class="more">+${list.length - 3}</div>` : ""}
+      ${(artMap[s] || []).slice(0, 2).map(a => `<div class="chip art"><b>🎨</b><span>${esc(a.pet)}</span></div>`).join("")}
     </button>`;
   }
   $("#calGrid").innerHTML = html;
@@ -395,10 +404,15 @@ $("#bkForm").onsubmit = async e => {
   try {
     if (isNew) await put("customers", c);
     await put("bookings", b);
+    let artAdded = false;
+    if (b.service.includes("似顏繪") && b.status !== "cancelled" && !DB.arts.some(a => a.bookingId === b.id)) {
+      await put("arts", { id: uid(), bookingId: b.id, customerId: c.id, customerName: name, pet: b.pet, status: "queue", frame: "", due: "", photos: false, address: "", tracking: "", note: "", createdAt: Date.now() });
+      artAdded = true;
+    }
     selDay = b.date;
     const d = parseYmd(b.date); view = new Date(d.getFullYear(), d.getMonth(), 1);
     render();
-    toast(isNew ? "已儲存，並建立新客人 ✨" : "已儲存 ✨");
+    toast((isNew ? "已儲存，並建立新客人 ✨" : "已儲存 ✨") + (artAdded ? "　🎨 已加進似顏繪排程" : ""));
   } catch {}
 };
 $("#bkDel").onclick = async () => {
@@ -446,8 +460,94 @@ $("#custDel").onclick = async () => {
 };
 $("#custBook").onclick = () => { custDlg.close(); openBooking(null, { customerName: editingCust.name, source: editingCust.source, date: selDay }); };
 
+// ================= 似顏繪排程 =================
+function dueInfo(a) {
+  if (!a.due) return { text: "完成日未定", cls: "" };
+  const days = Math.round((parseYmd(a.due) - parseYmd(todayStr())) / 86400e3);
+  if (a.status === "shipped") return { text: `完成日 ${dLabel(a.due)}`, cls: "" };
+  if (days < 0) return { text: `已超過 ${-days} 天（${dLabel(a.due)}）`, cls: "late" };
+  if (days === 0) return { text: `今天要完成（${dLabel(a.due)}）`, cls: "soon" };
+  return { text: `還有 ${days} 天（${dLabel(a.due)}）`, cls: days <= 3 ? "soon" : "" };
+}
+function renderArts() {
+  const open = DB.arts.filter(a => a.status !== "shipped").length;
+  const c = $("#artCnt"); c.textContent = open; c.classList.toggle("hidden", !open);
+  if (tab !== "arts") return;
+  $("#artSum").innerHTML = ART_ORDER.map(k => `<span>${ART_STATUS[k]}<b>${DB.arts.filter(a => a.status === k).length}</b></span>`).join("");
+  const sortDue = (x, y) => (x.due || "9999").localeCompare(y.due || "9999");
+  $("#artBoard").innerHTML = ART_ORDER.map((k, i) => {
+    let list = DB.arts.filter(a => a.status === k).sort(sortDue);
+    if (k === "shipped") list = list.sort((x, y) => (y.updatedAt || 0) - (x.updatedAt || 0)).slice(0, 12);
+    return `<div class="art-col"><h4>${ART_STATUS[k]} <em>${DB.arts.filter(a => a.status === k).length}</em></h4>
+      ${list.map(a => { const d = dueInfo(a); return `<div class="acard" data-art="${a.id}">
+        <b>🎨 ${esc(a.pet)}｜${esc(a.customerName)}</b>
+        <div class="due ${d.cls}">${d.text}</div>
+        <div class="meta">${esc(a.frame || "畫框未選")}${a.photos ? "・✔ 照片已收到" : "・照片還沒收到"}</div>
+        ${a.tracking ? `<div class="meta">物流：${esc(a.tracking)}</div>` : ""}
+        <div class="acts">${i > 0 ? `<button class="btn" type="button" data-artmove="${a.id}" data-dir="-1">←</button>` : ""}${i < ART_ORDER.length - 1 ? `<button class="btn soft" type="button" data-artmove="${a.id}" data-dir="1">${ART_STATUS[ART_ORDER[i + 1]]} →</button>` : ""}</div>
+      </div>`; }).join("") || `<div class="empty">沒有</div>`}
+    </div>`;
+  }).join("");
+}
+let editingArt = null;
+const artDlg = $("#artDlg");
+function fillArtDate(due) {
+  const y0 = new Date().getFullYear(), d = due ? parseYmd(due) : null;
+  $("#a_y").innerHTML = `<option value="">未定</option>` + [y0 - 1, y0, y0 + 1, y0 + 2].map(y => `<option value="${y}" ${d && d.getFullYear() === y ? "selected" : ""}>${y} 年</option>`).join("");
+  $("#a_m").innerHTML = `<option value="">月</option>` + Array.from({ length: 12 }, (_, i) => `<option value="${i + 1}" ${d && d.getMonth() === i ? "selected" : ""}>${i + 1} 月</option>`).join("");
+  fillArtDays(d ? d.getDate() : 0);
+}
+function fillArtDays(keep) {
+  const y = +$("#a_y").value, m = +$("#a_m").value;
+  if (!y || !m) { $("#a_d").innerHTML = `<option value="">日</option>`; return; }
+  const n = new Date(y, m, 0).getDate(), cur = Math.min(keep || +$("#a_d").value || 0, n);
+  $("#a_d").innerHTML = `<option value="">日</option>` + Array.from({ length: n }, (_, i) => `<option value="${i + 1}" ${i + 1 === cur ? "selected" : ""}>${i + 1} 日（${WD[new Date(y, m - 1, i + 1).getDay()]}）</option>`).join("");
+}
+$("#a_y").onchange = () => fillArtDays(); $("#a_m").onchange = () => fillArtDays();
+function openArt(a, preset = {}) {
+  editingArt = a ? { ...a } : null;
+  const x = a || { status: "queue", ...preset };
+  $("#artTitle").textContent = a ? `🎨 ${a.pet} 的似顏繪` : "新增似顏繪";
+  $("#a_customer").value = x.customerName || ""; $("#a_pet").value = x.pet || "";
+  $("#a_status").innerHTML = ART_ORDER.map(k => `<option value="${k}" ${k === x.status ? "selected" : ""}>${ART_STATUS[k]}</option>`).join("");
+  $("#a_frame").innerHTML = opts(FRAMES, x.frame, "還沒選");
+  fillArtDate(x.due || "");
+  $("#a_photos").checked = !!x.photos;
+  $("#a_address").value = x.address || ""; $("#a_tracking").value = x.tracking || ""; $("#a_note").value = x.note || "";
+  const bk = x.bookingId && DB.bookings.find(b => b.id === x.bookingId);
+  $("#a_from").textContent = bk ? `來自預約：${dLabel(bk.date)} ${bk.time}｜${bk.service}` : "";
+  $("#artDel").classList.toggle("hidden", !a);
+  artDlg.showModal();
+}
+$("#artForm").onsubmit = async e => {
+  e.preventDefault();
+  const name = $("#a_customer").value.trim(), pet = $("#a_pet").value.trim();
+  if (!name || !pet) return toast("請填寫客人和寵物名字");
+  const y = $("#a_y").value, m = $("#a_m").value, d = $("#a_d").value;
+  if ((y || m || d) && !(y && m && d)) return toast("預計完成日請選完整的年、月、日，或都選「未定」");
+  const c = findCustomerByName(name);
+  const a = { ...(editingArt || { id: uid(), createdAt: Date.now() }), customerName: name, customerId: c ? c.id : (editingArt && editingArt.customerId) || "",
+    pet, status: $("#a_status").value, frame: $("#a_frame").value, due: y ? `${y}-${pad(m)}-${pad(d)}` : "",
+    photos: $("#a_photos").checked, address: $("#a_address").value.trim(), tracking: $("#a_tracking").value.trim(), note: $("#a_note").value.trim() };
+  artDlg.close();
+  try { await put("arts", a); toast("似顏繪排程已儲存 🎨"); } catch {}
+};
+$("#artDel").onclick = async () => {
+  if (!editingArt || !confirm(`刪除「${editingArt.pet}」的似顏繪排程？`)) return;
+  artDlg.close(); await del("arts", editingArt.id); toast("已刪除");
+};
+$("#artAdd").onclick = () => openArt(null);
+async function moveArt(id, dir) {
+  const a = DB.arts.find(x => x.id === id); if (!a) return;
+  const i = ART_ORDER.indexOf(a.status) + dir;
+  if (i < 0 || i >= ART_ORDER.length) return;
+  try { await put("arts", { ...a, status: ART_ORDER[i] }); toast(`「${a.pet}」→ ${ART_STATUS[ART_ORDER[i]]}`); } catch {}
+}
+
 // ================= 事件 =================
 document.addEventListener("click", e => {
+  const am = e.target.closest("[data-artmove]"); if (am) { e.stopPropagation(); return moveArt(am.dataset.artmove, +am.dataset.dir); }
+  const ac = e.target.closest("[data-art]"); if (ac) { const a = DB.arts.find(x => x.id === ac.dataset.art); if (a) openArt(a); return; }
   const pa = e.target.closest("[data-payall]"); if (pa) { e.stopPropagation(); return quickPayAll(pa.dataset.payall); }
   const bk = e.target.closest("[data-bk]"); if (bk) { const b = DB.bookings.find(x => x.id === bk.dataset.bk); if (b) { if (custDlg.open) custDlg.close(); openBooking(b); } return; }
   const cu = e.target.closest("[data-cust]"); if (cu) { const c = DB.customers.find(x => x.id === cu.dataset.cust); if (c) openCustomer(c); return; }
@@ -472,7 +572,7 @@ $("#goToday").onclick = () => { const d = new Date(); view = new Date(d.getFullY
 function switchTab(t) {
   tab = t;
   document.querySelectorAll(".tab").forEach(x => x.classList.toggle("on", x.dataset.tab === t));
-  ["day", "customers", "stats"].forEach(k => $("#tab-" + k).classList.toggle("hidden", k !== t));
+  ["day", "customers", "arts", "stats"].forEach(k => $("#tab-" + k).classList.toggle("hidden", k !== t));
   if (t === "stats") fillStatMonth();
   render();
 }
@@ -502,16 +602,17 @@ $("#importFile").onchange = async e => {
   try {
     const d = JSON.parse(await f.text());
     if (!Array.isArray(d.bookings) || !Array.isArray(d.customers)) throw new Error("檔案格式不對");
-    if (!confirm(`匯入 ${d.customers.length} 位客人、${d.bookings.length} 筆預約？（相同的資料會被覆蓋）`)) return;
+    d.arts ||= [];
+    if (!confirm(`匯入 ${d.customers.length} 位客人、${d.bookings.length} 筆預約、${d.arts.length} 筆似顏繪？（相同的資料會被覆蓋）`)) return;
     if (mode === "cloud") { await api("POST", "import", d); await loadAll(); }
-    else { for (const k of ["bookings", "customers"]) d[k].forEach(x => { const i = DB[k].findIndex(y => y.id === x.id); i >= 0 ? DB[k][i] = x : DB[k].push(x); }); persistLocal(); render(); }
+    else { for (const k of ["bookings", "customers", "arts"]) d[k].forEach(x => { const i = DB[k].findIndex(y => y.id === x.id); i >= 0 ? DB[k][i] = x : DB[k].push(x); }); persistLocal(); render(); }
     toast("匯入完成");
   } catch (err) { toast("匯入失敗：" + err.message); }
 };
 
 // 多裝置：回到畫面或每 2 分鐘自動同步
-document.addEventListener("visibilitychange", () => { if (!document.hidden && mode === "cloud" && password && !bkDlg.open && !custDlg.open) loadAll().catch(() => {}); });
-setInterval(() => { if (!document.hidden && mode === "cloud" && !bkDlg.open && !custDlg.open) loadAll().catch(() => {}); }, 120000);
+document.addEventListener("visibilitychange", () => { if (!document.hidden && mode === "cloud" && password && !bkDlg.open && !custDlg.open && !$("#artDlg").open) loadAll().catch(() => {}); });
+setInterval(() => { if (!document.hidden && mode === "cloud" && !bkDlg.open && !custDlg.open && !$("#artDlg").open) loadAll().catch(() => {}); }, 120000);
 setInterval(renderToday, 60000);
 
 boot();

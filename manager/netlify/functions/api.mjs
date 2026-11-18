@@ -20,7 +20,7 @@ function authorized(req) {
   return a.length === b.length && timingSafeEqual(a, b);
 }
 
-const KINDS = { bookings: "b/", customers: "c/" };
+const KINDS = { bookings: "b/", customers: "c/", arts: "a/" };
 const ID_RE = /^[A-Za-z0-9_-]{6,40}$/;
 
 async function listAll(s, prefix) {
@@ -40,11 +40,11 @@ export default async (req) => {
     if (parts[0] === "ping") return json({ ok: true });
 
     if (parts[0] === "data" && req.method === "GET") {
-      const [bookings, customers] = await Promise.all([listAll(s, KINDS.bookings), listAll(s, KINDS.customers)]);
-      return json({ bookings, customers });
+      const [bookings, customers, arts] = await Promise.all([listAll(s, KINDS.bookings), listAll(s, KINDS.customers), listAll(s, KINDS.arts)]);
+      return json({ bookings, customers, arts });
     }
 
-    // 匯入備份：{ bookings: [...], customers: [...] }
+    // 匯入備份：{ bookings: [...], customers: [...], arts: [...] }
     if (parts[0] === "import" && req.method === "POST") {
       const body = await req.json();
       let n = 0;

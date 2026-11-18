@@ -75,6 +75,7 @@
     <nav class="tabs" id="tabs">
       <button class="tab on" data-tab="day" type="button">📅 預約</button>
       <button class="tab" data-tab="customers" type="button">👤 客人資料</button>
+      <button class="tab" data-tab="arts" type="button">🎨 似顏繪<span class="tab-cnt hidden" id="artCnt"></span></button>
       <button class="tab" data-tab="stats" type="button">📊 結算統計</button>
     </nav>
 
@@ -102,6 +103,15 @@
         <input type="search" id="custSearch" placeholder="搜尋客人或寵物名字…">
         <div id="custList" class="cust-list"></div>
       </div>
+    </section>
+
+    <section class="tab-page hidden" id="tab-arts">
+      <div class="panel">
+        <div class="sec-head"><h3>似顏繪排程</h3><button class="btn small primary" id="artAdd" type="button">＋ 新增似顏繪</button></div>
+        <div class="art-sum" id="artSum"></div>
+        <p class="muted small">預約項目有「似顏繪」的預約，儲存時會自動加進來。預計完成日也會顯示在月曆上（🎨）。</p>
+      </div>
+      <div id="artBoard" class="art-board"></div>
     </section>
 
     <section class="tab-page hidden" id="tab-stats">
@@ -184,6 +194,35 @@
       <button class="btn danger" id="custDel" type="button">刪除客人</button>
       <span class="spacer"></span>
       <button class="btn soft" id="custBook" type="button">＋ 幫他新增預約</button>
+      <button class="btn primary" type="submit">儲存</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- 似顏繪排程 -->
+<dialog id="artDlg" class="dlg">
+  <form id="artForm" method="dialog" autocomplete="off">
+    <div class="dlg-head"><h3 id="artTitle">似顏繪</h3><button class="btn icon" type="button" data-close aria-label="關閉">✕</button></div>
+    <div class="dlg-body">
+      <div class="grid2">
+        <label class="fld"><span>客人名字 *</span><input id="a_customer" list="dl_customers" required></label>
+        <label class="fld"><span>寵物名字 *</span><input id="a_pet" required></label>
+        <label class="fld"><span>進度</span><select id="a_status"></select></label>
+        <label class="fld"><span>畫框款式</span><select id="a_frame"></select></label>
+      </div>
+      <div class="fld"><span>預計完成日</span>
+        <div class="grid3"><select id="a_y"></select><select id="a_m"></select><select id="a_d"></select></div>
+      </div>
+      <label class="check box"><input type="checkbox" id="a_photos"> 已收到毛孩照片</label>
+      <label class="fld"><span>寄送地址</span><input id="a_address" placeholder="完成後寄送的地址"></label>
+      <label class="fld"><span>物流單號</span><input id="a_tracking" placeholder="寄出後填寫"></label>
+      <label class="fld"><span>備註</span><textarea id="a_note" rows="3" placeholder="構圖、指定日期、送禮…"></textarea></label>
+      <small class="hint" id="a_from"></small>
+    </div>
+    <div class="dlg-foot">
+      <button class="btn danger" id="artDel" type="button">刪除</button>
+      <span class="spacer"></span>
+      <button class="btn" type="button" data-close>取消</button>
       <button class="btn primary" type="submit">儲存</button>
     </div>
   </form>
