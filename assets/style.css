@@ -204,3 +204,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--pink);box-shadow:0 0 
 .about-stats b{display:block;font-size:24px;color:var(--pink-strong);font-variant-numeric:tabular-nums}
 .about-stats small{font-size:15px}
 .about-stats span{font-size:13px;color:var(--muted)}
+.about-story{margin:6px 0 14px;padding:14px 16px;border-radius:18px;background:rgba(255,240,231,.85);border:1px solid rgba(205,135,109,.28);display:grid;gap:4px}
+.about-story p{margin:0}
+.about-quote{font-family:var(--title-font);font-size:22px;color:var(--pink-strong);-webkit-text-stroke:.3px currentColor;line-height:1.5;margin-top:4px!important}
+.about-story a{font-size:15px;color:var(--ink-deep)}
