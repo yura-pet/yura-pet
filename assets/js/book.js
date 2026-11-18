@@ -153,12 +153,13 @@ function planGroups(s) {
   if (!combo.length) return note + `<div class="choices">${solo.map(planChoice).join("")}</div>`;
   return note + `<div class="plan-group"><div class="pg-title">${s.key === "search" ? "找寵方案" : "只要溝通"}</div><div class="choices">${solo.map(planChoice).join("")}</div></div>
     <div class="plan-group combo"><div class="pg-title">🎨 溝通＋似顏繪套組 <span class="pg-tag">比分開買便宜</span></div>
-    <div class="pg-desc">溝通完，把毛孩的樣子一起畫下來。手繪（含框含運）或電繪任選。</div>
+    <div class="pg-desc">溝通完，把毛孩的樣子一起畫下來。手繪似顏繪，含畫框、含運費。</div>
     <div class="choices">${combo.map(planChoice).join("")}</div></div>`;
 }
 
 function stepDetails() {
   const s = svc();
+  if (s.plans.length === 1 && !state.plan) state.plan = s.plans[0].key;
   stage.innerHTML = `
     <div class="lbl">方案<span class="req">*</span></div>
     <div id="plans">${planGroups(s)}</div>

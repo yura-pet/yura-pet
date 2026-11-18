@@ -13,7 +13,7 @@ const SERVICES = [
   "套組｜離世溝通＋似顏繪", "套組｜離世溝通＋超度＋似顏繪",
   "找寵｜奇門遁甲方案", "找寵｜寵物溝通", "找寵｜生死測算",
   "套組｜找寵溝通＋似顏繪", "套組｜奇門遁甲＋似顏繪",
-  "似顏繪｜手繪", "似顏繪｜電繪", "似顏繪｜溝通後加購", "其他"
+  "似顏繪｜手繪", "其他"
 ];
 const STATUS = { booked: "已預約", done: "已完成", cancelled: "已取消" };
 const TIMES = []; for (let m = 10 * 60; m <= 24 * 60; m += 30) TIMES.push(`${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`);

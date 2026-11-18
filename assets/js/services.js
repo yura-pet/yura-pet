@@ -3,27 +3,24 @@
 
 // 套組方案（溝通＋似顏繪）的 key 都以 -art 結尾
 export const isBundle = key => /-art$/.test(key || "");
-// 套組價 = 溝通價 + 這個金額（似顏繪單買手繪 NT$1,680、電繪 NT$1,500）；有 bundlePrice 的方案直接用那個價錢
+// 套組價 = 溝通價 + 這個金額（似顏繪單買 NT$1,500，手繪含框含運）；有 bundlePrice 的方案直接用那個價錢
 const BUNDLE_EXTRA = 1200;
 const ART_ALONE = 1500;
 function withBundles(plans, skip = []) {
   const out = plans.map(p => ({ ...p }));
   out.forEach(p => delete p.bundlePrice);
   plans.filter(p => !skip.includes(p.key)).forEach(p => out.push({
-    key: p.key + "-art", label: p.label + "＋似顏繪", meta: (p.meta ? p.meta + "・" : "") + "手繪或電繪任選",
+    key: p.key + "-art", label: p.label + "＋似顏繪", meta: (p.meta ? p.meta + "・" : "") + "手繪似顏繪含框含運",
     price: p.bundlePrice || p.price + BUNDLE_EXTRA, orig: p.price + ART_ALONE, bundle: true
   }));
   return out;
 }
 
 const ART_FIELDS = [
-  { key: "artFormat", label: "似顏繪形式", type: "select", options: ["手繪（含畫框、含運，寄送實體作品）", "電繪（提供電子檔）"], required: true,
-    hint: "似顏繪會依照片與 Yura 的畫風創作，交稿後即結案，不提供修改。照片請在 LINE 傳給我。",
-    showIf: s => isBundle(s.plan) },
-  { key: "artFrame", label: "畫框款式（手繪）", type: "select", required: true,
+  { key: "artFrame", label: "似顏繪畫框款式", type: "select", required: true,
     options: ["大一點的框｜壓克力胡桃木", "小一點的框｜玻璃胡桃木", "小一點的框｜玻璃原木色"],
-    hint: "畫框款式可以在「似顏繪」頁面看實拍照。",
-    showIf: s => isBundle(s.plan) && (s.values.artFormat || "").startsWith("手繪") }
+    hint: "手繪似顏繪含畫框與運費，完成後寄送實體作品。會依照片與 Yura 的畫風創作，交稿後即結案，不提供修改。畫框實拍照在「似顏繪」頁面。",
+    showIf: s => isBundle(s.plan) }
 ];
 
 export const SERVICES = {
@@ -72,7 +69,7 @@ export const SERVICES = {
     slot: "required",
     plans: withBundles([
       { key: "basic", label: "離世溝通", meta: "30 分鐘", price: 2200, bundlePrice: 3000 },
-      { key: "salvation", label: "離世溝通＋超度", meta: "含超度後的轉世推算", price: 7200 }
+      { key: "salvation", label: "離世溝通＋超度", meta: "含超度後的轉世推算", price: 7200, bundlePrice: 8000 }
     ]),
     methods: ["照片＋視訊", "照片＋語音", "照片＋文字"],
     methodHint: "視訊與語音都會同步錄音並提供錄音紀錄。",
@@ -161,10 +158,7 @@ export const SERVICES = {
     detailUrl: "illustration.html",
     slot: "none",
     plans: [
-      { key: "hand", label: "手繪似顏繪", meta: "含畫框・含運費・寄送實體作品", price: 1680 },
-      { key: "digital", label: "電繪似顏繪", meta: "高相似度・提供電子檔", price: 1500 },
-      { key: "addon-hand", label: "溝通後加購｜手繪", meta: "已預約 Yura 寵物溝通", price: 1200 },
-      { key: "addon-digital", label: "溝通後加購｜電繪", meta: "已預約 Yura 寵物溝通", price: 1200 }
+      { key: "hand", label: "手繪似顏繪", meta: "含畫框・含運費・寄送實體作品", price: 1500 }
     ],
     addons: [],
     mustKnow: [
@@ -177,8 +171,7 @@ export const SERVICES = {
       { key: "petInfo", label: "毛孩種類", type: "text", placeholder: "例：玄鳳鸚鵡、比熊、倉鼠…" },
       { key: "frame", label: "畫框款式（手繪）", type: "select", required: true,
         options: ["大一點的框｜壓克力胡桃木", "小一點的框｜玻璃胡桃木", "小一點的框｜玻璃原木色"],
-        hint: "畫框實拍照在「似顏繪」頁面。",
-        showIf: s => s.plan === "hand" || s.plan === "addon-hand" },
+        hint: "畫框實拍照在「似顏繪」頁面。" },
       { key: "dueDate", label: "是否有指定完成日期", type: "text", placeholder: "沒有可填「無」" },
       { key: "note", label: "其他需求", type: "textarea", placeholder: "送禮、特殊構圖…可以留空" }
     ],
