@@ -1,4 +1,4 @@
-import { chrome, esc, toast, copyText, lineHref } from "./common.js";
+import { chrome, esc, toast, copyText, lineHref, lineMessageHref } from "./common.js";
 import { SERVICES, SERVICE_ORDER, money } from "./services.js";
 import { getSettings, listOpenSlots, createBooking, slotLabel, fmtCode, isDemo } from "./db.js";
 
@@ -134,15 +134,25 @@ function fieldHtml(f) {
   return `<div class="field ${full}"><label for="${id}">${esc(f.label)}${req}</label>${input}${f.hint ? `<div class="hint">${esc(f.hint)}</div>` : ""}</div>`;
 }
 
+function planChoice(p) {
+  return `<label class="choice ${p.bundle ? "bundle" : ""}"><input type="radio" name="plan" value="${p.key}" ${state.plan === p.key ? "checked" : ""}>
+    <span class="c-main"><span class="c-t">${esc(p.label)}</span><span class="c-m">　${esc(p.meta || "")}</span></span>
+    <span class="c-p">${p.orig ? `<s class="orig">${money(p.orig)}</s>` : ""}${money(p.price)}${p.orig ? `<span class="save">省 ${money(p.orig - p.price)}</span>` : ""}</span></label>`;
+}
+function planGroups(s) {
+  const solo = s.plans.filter(p => !p.bundle), combo = s.plans.filter(p => p.bundle);
+  if (!combo.length) return `<div class="choices">${solo.map(planChoice).join("")}</div>`;
+  return `<div class="plan-group"><div class="pg-title">只要溝通</div><div class="choices">${solo.map(planChoice).join("")}</div></div>
+    <div class="plan-group combo"><div class="pg-title">🎨 溝通＋似顏繪套組 <span class="pg-tag">比分開買便宜</span></div>
+    <div class="pg-desc">溝通完，把毛孩的樣子一起畫下來。手繪（含框含運）或電繪任選。</div>
+    <div class="choices">${combo.map(planChoice).join("")}</div></div>`;
+}
+
 function stepDetails() {
   const s = svc();
   stage.innerHTML = `
     <div class="lbl">方案<span class="req">*</span></div>
-    <div class="choices" id="plans">${s.plans.map(p => `
-      <label class="choice"><input type="radio" name="plan" value="${p.key}" ${state.plan === p.key ? "checked" : ""}>
-      <span class="c-main"><span class="c-t">${esc(p.label)}</span><span class="c-m">　${esc(p.meta || "")}</span></span>
-      <span class="c-p">${money(p.price)}</span></label>`).join("")}
-    </div>
+    <div id="plans">${planGroups(s)}</div>
     ${s.methods ? `<div class="field"><div class="lbl">溝通方式<span class="req">*</span></div>
       <div class="choices inline">${s.methods.map(m => `<label class="choice"><input type="radio" name="method" value="${esc(m)}" ${state.method === m ? "checked" : ""}><span class="c-main"><span class="c-t">${esc(m)}</span></span></label>`).join("")}</div>
       ${s.methodHint ? `<div class="hint">${esc(s.methodHint)}</div>` : ""}</div>` : ""}
@@ -335,13 +345,17 @@ function stepDone() {
   const statusUrl = new URL("status.html?id=" + state.code, location.href).href;
   const text = ["【Yura 線上預約】", `預約編號：${code}`, "", ...state.summary.map(([k, v]) => `${k}：${v}`), `預估金額：${money(total())}`, "", "毛孩照片會另外傳送。", `查詢進度：${statusUrl}`].join("\n");
   const h = lineHref(settings);
+  const send = lineMessageHref(settings, text);
   stage.innerHTML = `
     <p class="center">已經收到你的預約了，謝謝你 ✨ 你的預約編號是：</p>
     <div class="code-box">${esc(code)}</div>
-    <div class="note warn"><b>還差最後一步：</b>請按下面的按鈕複製預約資料，回到 LINE 貼給我，並且<b>一起傳毛孩照片</b>。我確認時段後會通知你付款。</div>
+    <div class="note warn"><b>還差最後一步：</b>${send
+      ? "按下面的「傳到 LINE」，LINE 會自動打開並幫你填好預約資料，<b>直接按送出</b>就可以了。接著再<b>傳毛孩照片</b>給我。"
+      : "請按下面的按鈕複製預約資料，回到 LINE 貼給我，並且<b>一起傳毛孩照片</b>。"} 我確認時段後會通知你付款。</div>
     <div class="row-btns">
-      <button class="btn primary big" id="copy" type="button">複製預約資料</button>
-      ${h ? `<a class="btn line big" href="${h}" target="_blank" rel="noopener">開啟 LINE</a>` : ""}
+      ${send ? `<a class="btn line big" href="${send}" target="_blank" rel="noopener">📩 傳到 LINE</a>` : ""}
+      <button class="btn ${send ? "" : "primary big"}" id="copy" type="button">${send ? "LINE 沒有自動填好？改用複製" : "複製預約資料"}</button>
+      ${!send && h ? `<a class="btn line big" href="${h}" target="_blank" rel="noopener">開啟 LINE</a>` : ""}
     </div>
     <div class="note">📷 記得準備：${svc().prepare.map(esc).join("；")}</div>
     <p class="center muted" style="margin-top:16px">之後可以隨時用預約編號 <a href="status.html?id=${state.code}">查詢預約進度</a>。建議截圖保存這個畫面。</p>

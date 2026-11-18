@@ -1,17 +1,29 @@
 // 服務項目、方案、必讀重點與表單欄位
 // 改價格或改文字只要改這個檔案就可以了。
 
+// 套組方案（溝通＋似顏繪）的 key 都以 -art 結尾
+export const isBundle = key => /-art$/.test(key || "");
+// 套組價 = 溝通價 + 這個金額（似顏繪單買手繪 NT$1,680、電繪 NT$1,500）
+const BUNDLE_EXTRA = 1000;
+const ART_ALONE = 1500;
+function withBundles(plans, skip = []) {
+  const out = plans.map(p => ({ ...p }));
+  plans.filter(p => !skip.includes(p.key)).forEach(p => out.push({
+    key: p.key + "-art", label: p.label + "＋似顏繪", meta: (p.meta ? p.meta + "・" : "") + "手繪或電繪任選",
+    price: p.price + BUNDLE_EXTRA, orig: p.price + ART_ALONE, bundle: true
+  }));
+  return out;
+}
+
 const ART_FIELDS = [
   { key: "artFormat", label: "似顏繪形式", type: "select", options: ["手繪（含畫框、含運，寄送實體作品）", "電繪（提供電子檔）"], required: true,
-    showIf: s => s.addons.has("art") },
+    hint: "似顏繪會依照片與 Yura 的畫風創作，交稿後即結案，不提供修改。照片請在 LINE 傳給我。",
+    showIf: s => isBundle(s.plan) },
   { key: "artFrame", label: "畫框款式（手繪）", type: "select", required: true,
     options: ["大一點的框｜壓克力胡桃木", "小一點的框｜玻璃胡桃木", "小一點的框｜玻璃原木色"],
     hint: "畫框款式可以在「似顏繪」頁面看實拍照。",
-    showIf: s => s.addons.has("art") && (s.values.artFormat || "").startsWith("手繪") }
+    showIf: s => isBundle(s.plan) && (s.values.artFormat || "").startsWith("手繪") }
 ];
-
-const ART_ADDON = { key: "art", label: "加購似顏繪（溝通後加購價）", price: 1200,
-  hint: "把這次溝通的感受與毛孩的模樣一起留下來。" };
 
 export const SERVICES = {
   general: {
@@ -22,16 +34,15 @@ export const SERVICES = {
     short: "想了解毛孩的情緒、需求、想法，或某些行為背後的原因。",
     detailUrl: "https://yura-pet.github.io/yura-pet-general/",
     slot: "required",
-    plans: [
+    plans: withBundles([
       { key: "single", label: "單寵溝通（1 隻）", meta: "20 分鐘", price: 1680 },
       { key: "double", label: "多寵溝通（2 隻）", meta: "30 分鐘", price: 2380 },
       { key: "triple", label: "三寵溝通（3 隻）", meta: "40 分鐘", price: 3080 }
-    ],
+    ]),
     methods: ["視訊", "照片＋語音", "照片＋文字"],
     methodHint: "視訊與語音都會提供錄音紀錄；文字適合想慢慢閱讀、反覆查看的人。",
     addons: [
-      { key: "urgent", label: "緊急溝通", price: 1000, hint: "需要盡快安排時使用。" },
-      ART_ADDON
+      { key: "urgent", label: "緊急溝通", price: 1000, hint: "需要盡快安排時使用。" }
     ],
     mustKnow: [
       "溝通是「理解與協調」，不是控制或命令；毛孩不一定會立刻變乖，後續仍需要主人一起配合調整。",
@@ -58,16 +69,15 @@ export const SERVICES = {
     short: "想把還放在心裡的話說完，理解、傳達，好好告別。",
     detailUrl: "https://yura-pet.github.io/-yura-pet-deceased/",
     slot: "required",
-    plans: [
+    plans: withBundles([
       { key: "basic", label: "離世溝通", meta: "30 分鐘", price: 2200 },
       { key: "salvation", label: "離世溝通＋超度", meta: "含超度後的轉世推算", price: 7200 }
-    ],
+    ]),
     methods: ["照片＋視訊", "照片＋語音", "照片＋文字"],
     methodHint: "視訊與語音都會同步錄音並提供錄音紀錄。",
     addons: [
       { key: "rebirth", label: "炁絡筆裁示／動物兵馬打聖杯確認轉世", price: 666,
-        hint: "想確認目前的毛孩是不是前一隻回來了。需配合道長時間。" },
-      ART_ADDON
+        hint: "想確認目前的毛孩是不是前一隻回來了。需配合道長時間。" }
     ],
     mustKnow: [
       "離世後記憶會逐漸模糊，這是正常的。請不要用生前細節反覆驗證我有沒有連上——如果一定需要這樣驗證，建議先不要預約。",
@@ -101,12 +111,12 @@ export const SERVICES = {
     detailUrl: "https://yura-pet.github.io/-yura-pet-search/",
     slot: "optional",
     slotHint: "找寵通常比較急，可以不選時段，我會盡快安排；生死測算統一在晚上 9:00 打聖杯。",
-    plans: [
+    plans: withBundles([
       { key: "qimen", label: "奇門遁甲找寵方案（主推）", meta: "生死測算＋奇門遁甲報告＋溝通 1 次", price: 5000 },
       { key: "comm", label: "寵物溝通", meta: "走失未超過 1 天，或已使用奇門方案", price: 1680 },
       { key: "life", label: "生死測算", meta: "統一晚上 9:00 打聖杯", price: 666 }
-    ],
-    addons: [ART_ADDON],
+    ], ["life"]),
+    addons: [],
     mustKnow: [
       "找寵服務提供的是搜尋輔助資訊與方向，不保證一定尋回。",
       "毛孩會持續移動，溝通與卦象看到的是當下資訊，不是 GPS 精準定位。",

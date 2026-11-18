@@ -55,3 +55,10 @@ export function lineHref(s) {
   if (s.lineId) return "https://line.me/R/ti/p/" + encodeURIComponent(s.lineId.startsWith("@") ? s.lineId : "@" + s.lineId);
   return "";
 }
+
+// 開啟 LINE 官方帳號聊天室，並自動帶入要傳的文字（需要 LINE ID，例如 @yura）
+export function lineMessageHref(s, text) {
+  if (!s.lineId) return "";
+  const id = s.lineId.startsWith("@") ? s.lineId : "@" + s.lineId;
+  return `https://line.me/R/oaMessage/${encodeURIComponent(id)}/?${encodeURIComponent(text)}`;
+}
