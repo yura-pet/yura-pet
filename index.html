@@ -53,14 +53,66 @@
   <div class="svc-grid" id="svcGrid"></div>
 </section>
 
-<section class="card">
-  <h2 class="section-title">預約流程</h2>
+<section class="card" id="solve">
+  <h2 class="section-title">我能幫你解決什麼？</h2>
+  <p>很多時候不是牠不乖，而是有話想說。先理解牠，才知道接下來該怎麼一起調整。</p>
+  <div class="solve-grid">
+    <a class="solve" href="book.html?service=general">
+      <div class="solve-t">🐾 行為問題</div>
+      <div class="solve-d">亂尿、抗拒、焦慮、黏人、叫個不停、打架、挑食……了解行為背後的原因，和牠談條件、達成協議。</div>
+      <div class="solve-s">一般寵物溝通</div>
+    </a>
+    <a class="solve" href="book.html?service=general">
+      <div class="solve-t">💭 想更懂牠</div>
+      <div class="solve-d">牠現在的情緒和需求、對家人和環境的感受、牠想對你說的話，也把你想說的話傳達給牠。</div>
+      <div class="solve-s">一般寵物溝通</div>
+    </a>
+    <a class="solve" href="book.html?service=deceased">
+      <div class="solve-t">🕊️ 牠離開了</div>
+      <div class="solve-d">想知道牠現在好不好、把還放在心裡的話說完，放下愧疚，用祝福好好告別。</div>
+      <div class="solve-s">離世寵物溝通・超度</div>
+    </a>
+    <a class="solve" href="book.html?service=search">
+      <div class="solve-t">🧭 牠走失了</div>
+      <div class="solve-d">先確認生死，再整理方位、周圍環境和搜尋線索，搭配實際行動一起把牠找回來。</div>
+      <div class="solve-s">找寵服務</div>
+    </a>
+    <a class="solve" href="book.html?service=illustration">
+      <div class="solve-t">🎨 想把牠留下來</div>
+      <div class="solve-d">把毛孩的樣子畫下來，手繪含框寄到你手上。不只貓狗，特寵也可以。</div>
+      <div class="solve-s">手繪似顏繪</div>
+    </a>
+  </div>
+</section>
+
+<section class="card" id="plans">
+  <h2 class="section-title">服務方案</h2>
+  <p>點方案就能直接預約。每個溝通方案都可以加選「＋似顏繪」套組，預約時選，比分開買便宜。</p>
+  <div id="planList" class="plan-list"></div>
+</section>
+
+<section class="card" id="times">
+  <h2 class="section-title">可預約時間</h2>
+  <div class="time-grid" id="timeGrid"></div>
+  <ul class="time-notes">
+    <li><b>生死測算</b>統一在晚上 9:00 打聖杯。</li>
+    <li><b>找寵</b>通常比較急，可以不選時段，我會盡快安排。</li>
+    <li><b>奇門遁甲、超度</b>需要配合道長的時間，完成時間無法固定。</li>
+    <li>預約時可以選第一、第二志願；實際時間以我在 LINE 回覆確認為準。</li>
+  </ul>
+  <div class="hero-cta"><a class="btn primary" href="book.html">選時間預約</a></div>
+</section>
+
+<section class="card" id="flow">
+  <h2 class="section-title">服務流程</h2>
   <div class="steps">
     <div class="step"><div><b>選擇服務</b><br>依照毛孩目前的狀況，選擇一般溝通、離世溝通、找寵或似顏繪。</div></div>
     <div class="step"><div><b>看過重點說明</b><br>每項服務都有幾條「預約前一定要知道」的重點，確認理解後再往下。</div></div>
-    <div class="step"><div><b>填資料、選時段</b><br>直接選擇我開放的時段（可以選第一、第二志願），沒有適合的也可以自己提供。</div></div>
+    <div class="step"><div><b>選方案、填資料、選時段</b><br>選你要的方案，填寫毛孩資料和想問的問題，再挑希望的時段。</div></div>
     <div class="step"><div><b>傳到 LINE＋傳照片</b><br>送出後按「傳到 LINE」，預約資料會自動帶進 LINE，按送出後再傳毛孩照片給我。</div></div>
-    <div class="step"><div><b>確認時間＋完成付款</b><br>我確認時段後，完成全額付款，即正式預約成功 ✨</div></div>
+    <div class="step"><div><b>確認時間＋完成付款</b><br>我在 LINE 確認時段後，完成全額付款，即正式預約成功 ✨</div></div>
+    <div class="step"><div><b>進行溝通</b><br>依你選的方式進行：視訊、語音或文字。確認問題後就會開始計時並立即溝通。</div></div>
+    <div class="step"><div><b>溝通後</b><br>視訊、語音提供錄音紀錄，文字整理成文字回覆，方便你反覆回聽、閱讀。有選似顏繪的，完成後連框一起寄給你。</div></div>
   </div>
   <div class="hero-cta"><a class="btn primary" href="book.html">開始預約</a></div>
 </section>
@@ -98,6 +150,7 @@
 import { chrome, esc, lineHref } from "./assets/js/common.js";
 import { SERVICES, SERVICE_ORDER, money } from "./assets/js/services.js";
 import { getSettings } from "./assets/js/db.js";
+import { CONFIG } from "./assets/js/config.js";
 chrome("home");
 
 document.getElementById("svcGrid").innerHTML = SERVICE_ORDER.map(k => {
@@ -115,6 +168,22 @@ document.getElementById("svcGrid").innerHTML = SERVICE_ORDER.map(k => {
     </div>
   </div>`;
 }).join("");
+
+// 服務方案（跟預約表單同一份資料）
+document.getElementById("planList").innerHTML = SERVICE_ORDER.map(k => {
+  const sv = SERVICES[k];
+  return `<div class="plan-svc"><div class="plan-svc-h">${sv.icon} ${esc(sv.name)}</div>
+    ${sv.plans.filter(p => !p.bundle).map(p => `<a class="plan-row" href="book.html?service=${k}&plan=${p.key}">
+      <div class="plan-row-main"><b>${esc(p.label)}</b>${p.meta ? `<span>${esc(p.meta)}</span>` : ""}
+        ${p.includes ? `<small>${p.includes.map(esc).join("・")}</small>` : ""}</div>
+      <div class="plan-row-p">${money(p.price)}</div></a>`).join("")}
+    ${sv.addons.map(a => `<div class="plan-row add"><div class="plan-row-main"><b>＋ ${esc(a.label)}</b>${a.hint ? `<small>${esc(a.hint)}</small>` : ""}</div><div class="plan-row-p">+${money(a.price)}</div></div>`).join("")}
+  </div>`;
+}).join("");
+
+// 可預約時間
+document.getElementById("timeGrid").innerHTML = [["平日（週一～週五）", CONFIG.defaults.weekdayTimes], ["週末（週六、週日）", CONFIG.defaults.weekendTimes]]
+  .map(([t, arr]) => `<div class="time-card"><div class="time-t">${t}</div><div class="time-list">${arr.map(x => `<span>${x}</span>`).join("")}</div></div>`).join("");
 
 getSettings().then(s => {
   const a = document.getElementById("announce");
