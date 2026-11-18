@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#f8f1f4">
+<title>Yura｜服務方案</title>
+<meta name="description" content="寵物溝通師 Yura 的服務方案與價格">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<main class="wrap">
+<section class="hero" style="padding:22px 14px 18px">
+  <div class="brand"><div class="brand-cn">寵物溝通師</div><div class="brand-yura">Yura</div></div>
+  <h1 class="hero-title">服務方案</h1>
+  <div class="divider"></div>
+</section>
+<section class="card" id="plans">
+    <p>點方案就能直接預約。每個溝通方案都可以加選「＋似顏繪」套組，預約時選，比分開買便宜。</p>
+  <div id="planList" class="plan-list"></div>
+</section>
+</main>
+<div class="sticky-cta"><a class="btn primary big" href="book.html">點我預約</a></div>
+<script type="module">
+import { chrome, esc } from "./assets/js/common.js";
+import { SERVICES, SERVICE_ORDER, money } from "./assets/js/services.js";
+chrome("");
+// 服務方案（跟預約表單同一份資料）
+document.getElementById("planList").innerHTML = SERVICE_ORDER.map(k => {
+  const sv = SERVICES[k];
+  return `<div class="plan-svc"><div class="plan-svc-h">${sv.icon} ${esc(sv.name)}</div>
+    ${sv.plans.filter(p => !p.bundle).map(p => `<a class="plan-row" href="book.html?service=${k}&plan=${p.key}">
+      <div class="plan-row-main"><b>${esc(p.label)}</b>${p.meta ? `<span>${esc(p.meta)}</span>` : ""}
+        ${p.includes ? `<small>${p.includes.map(esc).join("・")}</small>` : ""}</div>
+      <div class="plan-row-p">${money(p.price)}</div></a>`).join("")}
+    ${sv.addons.map(a => `<div class="plan-row add"><div class="plan-row-main"><b>＋ ${esc(a.label)}</b>${a.hint ? `<small>${esc(a.hint)}</small>` : ""}</div><div class="plan-row-p">+${money(a.price)}</div></div>`).join("")}
+  </div>`;
+}).join("");
+
+
+</script>
+</body>
+</html>

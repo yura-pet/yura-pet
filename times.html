@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#f8f1f4">
+<title>Yura｜可預約時段</title>
+<meta name="description" content="寵物溝通師 Yura 的可預約時段">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<main class="wrap">
+<section class="hero" style="padding:22px 14px 18px">
+  <div class="brand"><div class="brand-cn">寵物溝通師</div><div class="brand-yura">Yura</div></div>
+  <h1 class="hero-title">可預約時段</h1>
+  <div class="divider"></div>
+</section>
+<section class="card" id="times">
+    <div class="time-grid" id="timeGrid"></div>
+  <ul class="time-notes">
+    <li><b>生死測算</b>統一在晚上 9:00 打聖杯。</li>
+    <li><b>找寵</b>通常比較急，可以不選時段，我會盡快安排。</li>
+    <li><b>奇門遁甲、超度</b>需要配合道長的時間，完成時間無法固定。</li>
+    <li>預約時可以選第一、第二志願；實際時間以我在 LINE 回覆確認為準。</li>
+  </ul>
+  <div class="hero-cta"><a class="btn primary" href="book.html">選時間預約</a></div>
+</section>
+</main>
+<div class="sticky-cta"><a class="btn primary big" href="book.html">點我預約</a></div>
+<script type="module">
+import { chrome, esc } from "./assets/js/common.js";
+import { CONFIG } from "./assets/js/config.js";
+chrome("");
+// 可預約時間
+document.getElementById("timeGrid").innerHTML = [["平日（週一～週五）", CONFIG.defaults.weekdayTimes], ["週末（週六、週日）", CONFIG.defaults.weekendTimes]]
+  .map(([t, arr]) => `<div class="time-card"><div class="time-t">${t}</div><div class="time-list">${arr.map(x => `<span>${x}</span>`).join("")}</div></div>`).join("");
+
+
+</script>
+</body>
+</html>
