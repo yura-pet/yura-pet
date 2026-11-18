@@ -85,7 +85,7 @@ function matches(b) {
   if (!["all", "active"].includes(filter.status) && b.status !== filter.status) return false;
   if (filter.service && b.service !== filter.service) return false;
   if (filter.q) {
-    const hay = [b.id, fmtCode(b.id), b.petName, b.customer?.name, b.customer?.contact, b.customer?.phone, ...(b.fields || []).map(f => f.value)].join(" ").toLowerCase();
+    const hay = [b.id, fmtCode(b.id), b.petName, b.customer?.name, b.customer?.email, b.customer?.contact, b.customer?.phone, ...(b.fields || []).map(f => f.value)].join(" ").toLowerCase();
     if (!hay.includes(filter.q)) return false;
   }
   return true;
@@ -133,7 +133,7 @@ function cardHtml(b) {
     ["方案", b.planLabel], b.method && ["溝通方式", b.method],
     b.addons?.length && ["加購", b.addons.map(a => `${a.label} +${money(a.price)}`).join("\n")],
     ...(b.fields || []).map(f => [f.label.replace(/^\d+\.\s*/, ""), f.value]),
-    ["稱呼", b.customer?.name], ["LINE 名稱", b.customer?.contact], b.customer?.phone && ["手機", b.customer.phone],
+    b.customer?.name && ["主人", b.customer.name], ["Email", b.customer?.email || b.customer?.contact], b.customer?.phone && ["手機", b.customer.phone],
     ["希望時段", [...(b.slotLabels || []).map((l, i) => `${i ? "第二" : "第一"}志願：${l}`), b.customTimes && "自己提供：\n" + b.customTimes].filter(Boolean).join("\n") || "未指定"],
     ["預估金額", money(b.total)], ["送出時間", fmtTime(b.createdAt)]
   ].filter(Boolean);
@@ -146,7 +146,7 @@ function cardHtml(b) {
   return `<details class="bk" data-id="${b.id}" ${openIds.has(b.id) ? "open" : ""}>
     <summary>
       <div><div class="t1">${svc?.icon || ""} ${esc(b.petName)}　<span class="badge ${st.tone}">${st.label}</span></div>
-      <div class="t2">${esc(svc?.name || b.service)}｜${esc(b.planLabel || "")}<br>${esc(b.customer?.name || "")}（LINE：${esc(b.customer?.contact || "")}）<br>${esc(want)}</div></div>
+      <div class="t2">${esc(svc?.name || b.service)}｜${esc(b.planLabel || "")}<br>${esc(b.customer?.email || b.customer?.contact || "")}<br>${esc(want)}</div></div>
       <div style="text-align:right"><div class="code">${fmtCode(b.id)}</div><div class="t2">${fmtTime(b.createdAt)}</div><div class="t2"><b>${money(b.finalPrice || b.total)}</b></div></div>
     </summary>
     <div class="bk-body">
@@ -219,7 +219,7 @@ function bindCard(d) {
   btn("copy").onclick = async () => {
     const lines = [`【預約 ${fmtCode(b.id)}】`, `服務：${SERVICES[b.service]?.name}｜${b.planLabel}`, b.method && `溝通方式：${b.method}`,
       ...(b.fields || []).map(f => `${f.label.replace(/^\d+\.\s*/, "")}：${f.value}`),
-      `稱呼：${b.customer?.name}`, `LINE：${b.customer?.contact}`, b.confirmedTime && `確認時間：${b.confirmedTime}`, `金額：${money(b.finalPrice || b.total)}`].filter(Boolean);
+      `Email：${b.customer?.email || b.customer?.contact || ""}`, b.confirmedTime && `確認時間：${b.confirmedTime}`, `金額：${money(b.finalPrice || b.total)}`].filter(Boolean);
     toast(await copyText(lines.join("\n")) ? "已複製" : "複製失敗");
   };
   btn("del").onclick = async () => {
@@ -233,12 +233,12 @@ function bindCard(d) {
 $("#csv").onclick = () => {
   const keys = new Set();
   bookings.forEach(b => (b.fields || []).forEach(f => keys.add(f.label)));
-  const cols = ["預約編號", "狀態", "服務", "方案", "溝通方式", "加購", ...keys, "稱呼", "LINE", "手機", "希望時段", "確認時間", "金額", "內部備註", "送出時間"];
+  const cols = ["預約編號", "狀態", "服務", "方案", "溝通方式", "加購", ...keys, "主人", "Email", "手機", "希望時段", "確認時間", "金額", "內部備註", "送出時間"];
   const q = v => `"${String(v ?? "").replace(/"/g, '""')}"`;
   const rows = bookings.filter(matches).map(b => {
     const fm = Object.fromEntries((b.fields || []).map(f => [f.label, f.value]));
     return [fmtCode(b.id), STATUS[b.status]?.label, SERVICES[b.service]?.name, b.planLabel, b.method, (b.addons || []).map(a => a.label).join("、"),
-      ...[...keys].map(k => fm[k]), b.customer?.name, b.customer?.contact, b.customer?.phone,
+      ...[...keys].map(k => fm[k]), b.customer?.name, b.customer?.email || b.customer?.contact, b.customer?.phone,
       [...(b.slotLabels || []), b.customTimes].filter(Boolean).join(" / "), b.confirmedTime, b.finalPrice || b.total, b.adminNote, fmtTime(b.createdAt)].map(q).join(",");
   });
   const blob = new Blob(["﻿" + [cols.map(q).join(","), ...rows].join("\n")], { type: "text/csv" });

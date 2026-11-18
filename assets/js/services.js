@@ -111,10 +111,14 @@ export const SERVICES = {
     detailUrl: "https://yura-pet.github.io/-yura-pet-search/",
     slot: "optional",
     slotHint: "找寵通常比較急，可以不選時段，我會盡快安排；生死測算統一在晚上 9:00 打聖杯。",
+    planNote: "💡 找寵前，建議先確認毛孩的生死。知道生死之後，接下來會想做的事常常不一樣：有人會選擇放下，也有人反而更想把牠找回來。所以第一次來，多數人會先從生死測算開始。",
     plans: withBundles([
-      { key: "qimen", label: "奇門遁甲找寵方案（主推）", meta: "生死測算＋奇門遁甲報告＋溝通 1 次", price: 5000 },
-      { key: "comm", label: "寵物溝通", meta: "走失未超過 1 天，或已使用奇門方案", price: 1680 },
-      { key: "life", label: "生死測算", meta: "統一晚上 9:00 打聖杯", price: 666 }
+      { key: "qimen", label: "奇門遁甲找寵方案（主推）", meta: "生死測算＋奇門遁甲找寵報告＋單次溝通 1 次", price: 5000,
+        desc: "三項一起進行：先確認生死，再用奇門遁甲整理方位、環境與搜尋線索，並教你怎麼看報告。" },
+      { key: "comm", label: "單次溝通", meta: "不論生死，一次 NT$1,680", price: 1680,
+        desc: "只有一次溝通：說明牠現在在哪裡、附近周圍有些什麼、身體狀況和心理狀態，說完即結案。" },
+      { key: "life", label: "生死測算", meta: "統一晚上 9:00 打聖杯", price: 666,
+        desc: "先確認毛孩現在的生死狀態。" }
     ], ["life"]),
     addons: [],
     mustKnow: [
@@ -125,22 +129,26 @@ export const SERVICES = {
       "全額付款後才會開始；服務開始後因已投入作業，不接受中途取消、不退款。"
     ],
     fields: [
-      { key: "petName", label: "1. 動物名字", type: "text", required: true },
-      { key: "petInfo", label: "2. 品種與年齡", type: "text", required: true },
-      { key: "chip", label: "3. 有沒有晶片", type: "select", options: ["有", "無", "不確定"], required: true },
-      { key: "health", label: "4. 健康狀況", type: "text" },
-      { key: "lostTime", label: "5. 走失的日期時間，到現在多久了", type: "text", required: true },
-      { key: "lostPlace", label: "6. 走失地點", type: "text", required: true },
-      { key: "howLost", label: "7. 怎麼走丟的", type: "textarea", required: true },
-      { key: "lastSeen", label: "8. 最後一次確定看到牠", type: "text", required: true },
-      { key: "searched", label: "9. 已經做過哪些搜尋", type: "textarea" },
-      { key: "ownerName", label: "10. 主人姓名", type: "text", required: true },
-      { key: "ownerBirth", label: "11. 主人出生年月日、時間", type: "text", required: true, placeholder: "例：1990/05/20 早上 8 點（不知道時間可填不確定）" },
-      { key: "ownerGender", label: "12. 主人性別", type: "select", options: ["女", "男", "其他"], required: true },
-      { key: "ownerCity", label: "13. 主人目前在哪個城市", type: "text", required: true },
+      { key: "petName", label: "動物名字", type: "text", required: true },
+      { key: "petInfo", label: "品種與年齡", type: "text", required: true, placeholder: "例：米克斯貓・3 歲" },
+      { key: "chip", label: "有沒有晶片", type: "select", options: ["有", "沒有", "不確定"], required: true },
+      { key: "health", label: "健康狀況", type: "select", options: ["健康", "有慢性病或需要吃藥", "年紀比較大", "受傷或身體不舒服", "不確定"] },
+      { key: "lostTime", label: "走失的日期時間", type: "text", required: true, placeholder: "例：11/16 晚上 10 點左右" },
+      { key: "lostPlace", label: "走失地點", type: "text", required: true, placeholder: "盡量寫到路名或附近地標" },
+      { key: "howLost", label: "怎麼走丟的", type: "textarea", required: true, placeholder: "例：開門拿外送時從門縫跑出去" },
+      { key: "lastSeen", label: "最後一次確定看到牠", type: "textarea", required: true, placeholder: "時間、地點、當時的樣子" },
+      { key: "searched", label: "已經做過哪些搜尋（可複選）", type: "multi",
+        options: ["附近找過", "張貼協尋海報", "社群發文（IG、FB、Threads）", "協尋社團／網站", "詢問附近住戶、店家", "調閱監視器", "通報收容所／動保處", "還沒開始找"] },
+      { key: "ownerNote", type: "note", showIf: s => ["qimen", "life", "qimen-art"].includes(s.plan),
+        text: "🔮 為什麼需要主人的資料？奇門遁甲與生死卦都需要「占卦」。占卦要先知道你是誰：在卦象裡，毛孩就像是你的財產，所以要用主人的姓名、出生年月日與時間，才能起卦、做奇門遁甲。資料只會用在這次的測算。" },
+      { key: "ownerName", label: "主人姓名", type: "text", required: true, showIf: s => ["qimen", "life", "qimen-art"].includes(s.plan) },
+      { key: "ownerBirth", label: "主人出生年月日、時間", type: "text", required: true, placeholder: "例：1990/05/20 早上 8 點（時間不知道可填不確定）",
+        showIf: s => ["qimen", "life", "qimen-art"].includes(s.plan) },
+      { key: "ownerGender", label: "主人性別", type: "select", options: ["女", "男"], required: true, showIf: s => ["qimen", "life", "qimen-art"].includes(s.plan) },
+      { key: "ownerCity", label: "主人目前居住的城市", type: "text", required: true, placeholder: "例：台中市", showIf: s => ["qimen", "life", "qimen-art"].includes(s.plan) },
       ...ART_FIELDS
     ],
-    prepare: ["毛孩近期照片兩張（正面一張、全身一張）", "主人的自拍照", "以上照片請在送出後回 LINE 傳給我"]
+    prepare: ["毛孩近期照片兩張（正面一張、全身一張）", "主人的自拍照（奇門遁甲、生死測算需要）", "以上照片請在送出後傳到 LINE 給我"]
   },
 
   illustration: {

@@ -14,7 +14,7 @@ const DRAFT = "yura_booking_draft";
 
 const state = {
   step: 0, service: "", plan: "", method: "", addons: new Set(), values: {},
-  customer: { name: "", contact: "", phone: "" },
+  customer: { email: "" },
   agreed: [], picks: [], noFit: false, customTimes: "", final: false, code: ""
 };
 
@@ -128,7 +128,13 @@ function fieldHtml(f) {
   const v = state.values[f.key] ?? "";
   const id = "f_" + f.key;
   const req = f.required ? '<span class="req">*</span>' : "";
+  if (f.type === "note") return `<div class="note full" style="margin-top:14px">${esc(f.text)}</div>`;
   let input;
+  if (f.type === "multi") {
+    const picked = String(v).split("、").filter(Boolean);
+    input = `<div class="choices inline" data-mf="${f.key}">${f.options.map(o => `<label class="choice"><input type="checkbox" value="${esc(o)}" ${picked.includes(o) ? "checked" : ""}><span class="c-main"><span class="c-t" style="font-weight:400;font-size:15px">${esc(o)}</span></span></label>`).join("")}</div>`;
+    return `<div class="field full"><div class="lbl">${esc(f.label)}${req}</div>${input}${f.hint ? `<div class="hint">${esc(f.hint)}</div>` : ""}</div>`;
+  }
   if (f.type === "textarea") input = `<textarea id="${id}" data-f="${f.key}" placeholder="${esc(f.placeholder || "")}">${esc(v)}</textarea>`;
   else if (f.type === "select") input = `<select id="${id}" data-f="${f.key}"><option value="">請選擇</option>${f.options.map(o => `<option ${o === v ? "selected" : ""}>${esc(o)}</option>`).join("")}</select>`;
   else input = `<input type="text" id="${id}" data-f="${f.key}" value="${esc(v)}" placeholder="${esc(f.placeholder || "")}">`;
@@ -138,13 +144,14 @@ function fieldHtml(f) {
 
 function planChoice(p) {
   return `<label class="choice ${p.bundle ? "bundle" : ""}"><input type="radio" name="plan" value="${p.key}" ${state.plan === p.key ? "checked" : ""}>
-    <span class="c-main"><span class="c-t">${esc(p.label)}</span><span class="c-m">　${esc(p.meta || "")}</span></span>
+    <span class="c-main"><span class="c-t">${esc(p.label)}</span><span class="c-m">　${esc(p.meta || "")}</span>${p.desc ? `<span class="c-d">${esc(p.desc)}</span>` : ""}</span>
     <span class="c-p">${p.orig ? `<s class="orig">${money(p.orig)}</s>` : ""}${money(p.price)}${p.orig ? `<span class="save">省 ${money(p.orig - p.price)}</span>` : ""}</span></label>`;
 }
 function planGroups(s) {
   const solo = s.plans.filter(p => !p.bundle), combo = s.plans.filter(p => p.bundle);
-  if (!combo.length) return `<div class="choices">${solo.map(planChoice).join("")}</div>`;
-  return `<div class="plan-group"><div class="pg-title">只要溝通</div><div class="choices">${solo.map(planChoice).join("")}</div></div>
+  const note = s.planNote ? `<div class="note" style="margin:4px 0 8px">${esc(s.planNote)}</div>` : "";
+  if (!combo.length) return note + `<div class="choices">${solo.map(planChoice).join("")}</div>`;
+  return note + `<div class="plan-group"><div class="pg-title">${s.key === "search" ? "找寵方案" : "只要溝通"}</div><div class="choices">${solo.map(planChoice).join("")}</div></div>
     <div class="plan-group combo"><div class="pg-title">🎨 溝通＋似顏繪套組 <span class="pg-tag">比分開買便宜</span></div>
     <div class="pg-desc">溝通完，把毛孩的樣子一起畫下來。手繪（含框含運）或電繪任選。</div>
     <div class="choices">${combo.map(planChoice).join("")}</div></div>`;
@@ -163,11 +170,10 @@ function stepDetails() {
       <span class="c-main"><span class="c-t">${esc(a.label)}</span>${a.hint ? `<br><span class="c-m">${esc(a.hint)}</span>` : ""}</span><span class="c-p">+${money(a.price)}</span></label>`).join("")}</div></div>` : ""}
     <h3 style="margin-top:24px">毛孩資料</h3>
     <div class="form-grid" id="fields"></div>
-    <h3 style="margin-top:24px">你的聯絡方式</h3>
+    <h3 style="margin-top:24px">聯絡方式</h3>
     <div class="form-grid">
-      <div class="field"><label for="c_name">怎麼稱呼你<span class="req">*</span></label><input type="text" id="c_name" value="${esc(state.customer.name)}" autocomplete="name"></div>
-      <div class="field"><label for="c_contact">LINE 名稱<span class="req">*</span></label><input type="text" id="c_contact" value="${esc(state.customer.contact)}" placeholder="方便我在 LINE 認出你"></div>
-      <div class="field full"><label for="c_phone">手機（選填）</label><input type="tel" id="c_phone" value="${esc(state.customer.phone)}" autocomplete="tel"></div>
+      <div class="field full"><label for="c_email">Email<span class="req">*</span></label><input type="email" id="c_email" value="${esc(state.customer.email || "")}" autocomplete="email" inputmode="email" placeholder="example@gmail.com">
+        <div class="hint">萬一 LINE 聯絡不上，我還能用 Email 找到你。</div></div>
     </div>
     <div class="note">📷 需要準備：${s.prepare.map(esc).join("；")}</div>
     <div class="note" id="sumLine"></div>
@@ -182,6 +188,9 @@ function stepDetails() {
       el.oninput = () => { state.values[el.dataset.f] = el.value; el.classList.remove("invalid"); saveDraft(); };
       if (el.tagName === "SELECT") el.onchange = () => { state.values[el.dataset.f] = el.value; saveDraft(); drawFields(); };
     });
+    box.querySelectorAll("[data-mf]").forEach(g => g.onchange = () => {
+      state.values[g.dataset.mf] = [...g.querySelectorAll("input:checked")].map(i => i.value).join("、"); saveDraft();
+    });
   };
   const drawSum = () => { $("#sumLine").innerHTML = planObj() ? `預估金額：<b class="emph">${money(total())}</b>　<span class="muted">（實際金額以 Yura 確認為準）</span>` : "請先選擇方案"; };
 
@@ -193,7 +202,7 @@ function stepDetails() {
   });
   stage.querySelectorAll("input[name=method]").forEach(r => r.onchange = () => { state.method = r.value; saveDraft(); });
   stage.querySelectorAll("input[name=addon]").forEach(r => r.onchange = () => { r.checked ? state.addons.add(r.value) : state.addons.delete(r.value); saveDraft(); drawFields(); drawSum(); });
-  [["c_name", "name"], ["c_contact", "contact"], ["c_phone", "phone"]].forEach(([id, k]) => $("#" + id).oninput = e => { state.customer[k] = e.target.value; e.target.classList.remove("invalid"); saveDraft(); });
+  $("#c_email").oninput = e => { state.customer.email = e.target.value; e.target.classList.remove("invalid"); saveDraft(); };
   drawFields(); drawSum();
 
   $("#next").onclick = () => {
@@ -201,8 +210,9 @@ function stepDetails() {
     if (!state.plan) problems.push(["#plans", "請選擇方案"]);
     if (s.methods && !state.method) problems.push([".choices.inline", "請選擇溝通方式"]);
     for (const f of visibleFields()) if (f.required && !String(state.values[f.key] || "").trim()) problems.push(["#f_" + f.key, `請填寫「${f.label}」`]);
-    if (!state.customer.name.trim()) problems.push(["#c_name", "請填寫稱呼"]);
-    if (!state.customer.contact.trim()) problems.push(["#c_contact", "請填寫 LINE 名稱"]);
+    const em = (state.customer.email || "").trim();
+    if (!em) problems.push(["#c_email", "請填寫 Email"]);
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)) problems.push(["#c_email", "Email 格式好像不對，請再確認一下"]);
     if (problems.length) {
       problems.forEach(([sel]) => { const el = $(sel); el && el.classList.add("invalid"); });
       const first = $(problems[0][0]);
@@ -284,8 +294,7 @@ function rows() {
   const ad = chosenAddons();
   if (ad.length) r.push(["加購", ad.map(a => `${a.label} +${money(a.price)}`).join("\n")]);
   visibleFields().forEach(f => { const v = String(state.values[f.key] || "").trim(); if (v) r.push([f.label.replace(/^\d+\.\s*/, ""), v]); });
-  r.push(["稱呼", state.customer.name], ["LINE 名稱", state.customer.contact]);
-  if (state.customer.phone) r.push(["手機", state.customer.phone]);
+  r.push(["Email", (state.customer.email || "").trim()]);
   if (hasSlotStep()) {
     const labels = state.picks.map((id, i) => `${i === 0 ? "第一志願" : "第二志願"}：${slotLabel(slots.find(x => x.id === id))}`);
     if (state.noFit && state.customTimes.trim()) labels.push("自己提供：\n" + state.customTimes.trim());
@@ -322,7 +331,7 @@ async function submit() {
     method: state.method || "",
     petName: String(state.values.petName || "").trim().slice(0, 200),
     fields: visibleFields().map(f => ({ key: f.key, label: f.label, value: String(state.values[f.key] || "").trim().slice(0, 3000) })).filter(x => x.value),
-    customer: { name: state.customer.name.trim().slice(0, 100), contact: state.customer.contact.trim().slice(0, 200), phone: state.customer.phone.trim().slice(0, 50) },
+    customer: { name: String(state.values.ownerName || "").trim().slice(0, 100), email: (state.customer.email || "").trim().slice(0, 200) },
     slotIds: hasSlotStep() ? [...state.picks] : [],
     slotLabels: hasSlotStep() ? state.picks.map(id => slotLabel(slots.find(x => x.id === id))) : [],
     customTimes: hasSlotStep() && state.noFit ? state.customTimes.trim().slice(0, 1000) : "",

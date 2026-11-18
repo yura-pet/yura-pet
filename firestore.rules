@@ -23,9 +23,9 @@ service cloud.firestore {
         && str(d.plan, 1, 40)
         && str(d.petName, 1, 200)
         && d.customer is map
-        && d.customer.keys().hasOnly(['name','contact','phone'])
-        && str(d.customer.name, 1, 100)
-        && str(d.customer.contact, 1, 200)
+        && d.customer.keys().hasOnly(['name','email'])
+        && str(d.customer.name, 0, 100)
+        && str(d.customer.email, 3, 200)
         && d.fields is list && d.fields.size() <= 40
         && d.slotIds is list && d.slotIds.size() <= 2
         && d.total is number && d.total >= 0 && d.total < 100000;
