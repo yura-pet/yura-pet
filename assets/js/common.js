@@ -5,8 +5,7 @@ export const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;"
 export function chrome(active, { cta = true } = {}) {
   const links = [
     ["index.html", "服務總覽", "home"],
-    ["illustration.html", "似顏繪", "illustration"],
-    ["status.html", "查詢預約", "status", "hide-sm"]
+    ["illustration.html", "似顏繪", "illustration"]
   ];
   const nav = document.createElement("nav");
   nav.className = "nav";
@@ -24,7 +23,7 @@ export function chrome(active, { cta = true } = {}) {
   }
   const f = document.createElement("footer");
   f.className = "footer";
-  f.innerHTML = `<div><a href="index.html">服務總覽</a>·<a href="illustration.html">似顏繪</a>·<a href="status.html">查詢預約</a>·<a href="book.html">線上預約</a></div>© Yura Pet Communication`;
+  f.innerHTML = `<div><a href="index.html">服務總覽</a>·<a href="illustration.html">似顏繪</a>·<a href="book.html">線上預約</a></div>© Yura Pet Communication`;
   (document.querySelector(".wrap") || document.body).append(f);
 }
 

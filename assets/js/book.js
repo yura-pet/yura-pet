@@ -1,6 +1,6 @@
 import { chrome, esc, toast, copyText, lineHref, lineMessageHref } from "./common.js";
 import { SERVICES, SERVICE_ORDER, money } from "./services.js";
-import { getSettings, listOpenSlots, createBooking, slotLabel, fmtCode, isDemo } from "./db.js";
+import { getSettings, listOpenSlots, createBooking, slotLabel } from "./db.js";
 
 chrome("book", { cta: false });
 
@@ -33,7 +33,9 @@ function clearDraft() { try { sessionStorage.removeItem(DRAFT); } catch {} }
 const svc = () => SERVICES[state.service];
 const planObj = () => svc()?.plans.find(p => p.key === state.plan);
 const hasSlotStep = () => svc() && svc().slot !== "none";
-const total = () => (planObj()?.price || 0) + svc().addons.filter(a => state.addons.has(a.key)).reduce((n, a) => n + a.price, 0);
+const visAddons = () => svc().addons.filter(a => !a.showIf || a.showIf(state));
+const chosenAddons = () => visAddons().filter(a => state.addons.has(a.key));
+const total = () => (planObj()?.price || 0) + chosenAddons().reduce((n, a) => n + a.price, 0);
 const visibleFields = () => svc().fields.filter(f => !f.showIf || f.showIf(state));
 
 function go(step) {
@@ -136,28 +138,20 @@ function fieldHtml(f) {
 
 function planChoice(p) {
   return `<label class="choice ${p.bundle ? "bundle" : ""}"><input type="radio" name="plan" value="${p.key}" ${state.plan === p.key ? "checked" : ""}>
-    <span class="c-main"><span class="c-t">${esc(p.label)}</span><span class="c-m">　${esc(p.meta || "")}</span></span>
-    <span class="c-p">${p.orig ? `<s class="orig">${money(p.orig)}</s>` : ""}${money(p.price)}${p.orig ? `<span class="save">省 ${money(p.orig - p.price)}</span>` : ""}</span></label>`;
-}
-function planGroups(s) {
-  const solo = s.plans.filter(p => !p.bundle), combo = s.plans.filter(p => p.bundle);
-  if (!combo.length) return `<div class="choices">${solo.map(planChoice).join("")}</div>`;
-  return `<div class="plan-group"><div class="pg-title">只要溝通</div><div class="choices">${solo.map(planChoice).join("")}</div></div>
-    <div class="plan-group combo"><div class="pg-title">🎨 溝通＋似顏繪套組 <span class="pg-tag">比分開買便宜</span></div>
-    <div class="pg-desc">溝通完，把毛孩的樣子一起畫下來。手繪（含框含運）或電繪任選。</div>
-    <div class="choices">${combo.map(planChoice).join("")}</div></div>`;
+    <span class="c-main"><span class="c-t">${p.bundle ? "🎨 " : ""}${esc(p.label)}</span><span class="c-m">　${esc(p.meta || "")}</span></span>
+    <span class="c-p">${money(p.price)}</span></label>`;
 }
 
 function stepDetails() {
   const s = svc();
   stage.innerHTML = `
     <div class="lbl">方案<span class="req">*</span></div>
-    <div id="plans">${planGroups(s)}</div>
+    <div class="choices" id="plans">${s.plans.map(planChoice).join("")}</div>
     ${s.methods ? `<div class="field"><div class="lbl">溝通方式<span class="req">*</span></div>
       <div class="choices inline">${s.methods.map(m => `<label class="choice"><input type="radio" name="method" value="${esc(m)}" ${state.method === m ? "checked" : ""}><span class="c-main"><span class="c-t">${esc(m)}</span></span></label>`).join("")}</div>
       ${s.methodHint ? `<div class="hint">${esc(s.methodHint)}</div>` : ""}</div>` : ""}
-    ${s.addons.length ? `<div class="field"><div class="lbl">加購（可不選）</div>
-      <div class="choices">${s.addons.map(a => `<label class="choice"><input type="checkbox" name="addon" value="${a.key}" ${state.addons.has(a.key) ? "checked" : ""}>
+    ${visAddons().length ? `<div class="field"><div class="lbl">加購（可不選）</div>
+      <div class="choices">${visAddons().map(a => `<label class="choice"><input type="checkbox" name="addon" value="${a.key}" ${state.addons.has(a.key) ? "checked" : ""}>
       <span class="c-main"><span class="c-t">${esc(a.label)}</span>${a.hint ? `<br><span class="c-m">${esc(a.hint)}</span>` : ""}</span><span class="c-p">+${money(a.price)}</span></label>`).join("")}</div></div>` : ""}
     <h3 style="margin-top:24px">毛孩資料</h3>
     <div class="form-grid" id="fields"></div>
@@ -183,7 +177,12 @@ function stepDetails() {
   };
   const drawSum = () => { $("#sumLine").innerHTML = planObj() ? `預估金額：<b class="emph">${money(total())}</b>　<span class="muted">（實際金額以 Yura 確認為準）</span>` : "請先選擇方案"; };
 
-  stage.querySelectorAll("input[name=plan]").forEach(r => r.onchange = () => { state.plan = r.value; saveDraft(); drawFields(); drawSum(); });
+  stage.querySelectorAll("input[name=plan]").forEach(r => r.onchange = () => {
+    $("#fields").querySelectorAll("[data-f]").forEach(el => state.values[el.dataset.f] = el.value);
+    state.plan = r.value;
+    svc().addons.forEach(a => { if (a.showIf && !a.showIf(state)) state.addons.delete(a.key); });
+    saveDraft(); const y = scrollY; stepDetails(); scrollTo(0, y);
+  });
   stage.querySelectorAll("input[name=method]").forEach(r => r.onchange = () => { state.method = r.value; saveDraft(); });
   stage.querySelectorAll("input[name=addon]").forEach(r => r.onchange = () => { r.checked ? state.addons.add(r.value) : state.addons.delete(r.value); saveDraft(); drawFields(); drawSum(); });
   [["c_name", "name"], ["c_contact", "contact"], ["c_phone", "phone"]].forEach(([id, k]) => $("#" + id).oninput = e => { state.customer[k] = e.target.value; e.target.classList.remove("invalid"); saveDraft(); });
@@ -274,7 +273,7 @@ function rows() {
   const s = svc(), p = planObj();
   const r = [["服務", s.name], ["方案", `${p.label}${p.meta ? "（" + p.meta + "）" : ""}`]];
   if (state.method) r.push(["溝通方式", state.method]);
-  const ad = s.addons.filter(a => state.addons.has(a.key));
+  const ad = chosenAddons();
   if (ad.length) r.push(["加購", ad.map(a => `${a.label} +${money(a.price)}`).join("\n")]);
   visibleFields().forEach(f => { const v = String(state.values[f.key] || "").trim(); if (v) r.push([f.label.replace(/^\d+\.\s*/, ""), v]); });
   r.push(["稱呼", state.customer.name], ["LINE 名稱", state.customer.contact]);
@@ -311,7 +310,7 @@ async function submit() {
   const data = {
     service: s.key, serviceName: s.name, plan: p.key, planLabel: `${p.label}${p.meta ? "（" + p.meta + "）" : ""}`,
     price: p.price, total: total(),
-    addons: s.addons.filter(a => state.addons.has(a.key)).map(a => ({ key: a.key, label: a.label, price: a.price })),
+    addons: chosenAddons().map(a => ({ key: a.key, label: a.label, price: a.price })),
     method: state.method || "",
     petName: String(state.values.petName || "").trim().slice(0, 200),
     fields: visibleFields().map(f => ({ key: f.key, label: f.label, value: String(state.values[f.key] || "").trim().slice(0, 3000) })).filter(x => x.value),
@@ -341,15 +340,12 @@ async function submit() {
 
 // ---------- Step 5 完成 ----------
 function stepDone() {
-  const code = fmtCode(state.code);
-  const statusUrl = new URL("status.html?id=" + state.code, location.href).href;
-  const text = ["【Yura 線上預約】", `預約編號：${code}`, "", ...state.summary.map(([k, v]) => `${k}：${v}`), `預估金額：${money(total())}`, "", "毛孩照片會另外傳送。", `查詢進度：${statusUrl}`].join("\n");
+  const text = ["【Yura 線上預約】", "", ...state.summary.map(([k, v]) => `${k}：${v}`), `預估金額：${money(total())}`, "", "毛孩照片會另外傳送。"].join("\n");
   const h = lineHref(settings);
   const send = lineMessageHref(settings, text);
   stage.innerHTML = `
-    <p class="center">已經收到你的預約了，謝謝你 ✨ 你的預約編號是：</p>
-    <div class="code-box">${esc(code)}</div>
-    <div class="note warn"><b>還差最後一步：</b>${send
+    <p class="center">已經收到你的預約了，謝謝你 ✨</p>
+    <div class="note warn"><b>最後一步：</b>${send
       ? "按下面的「傳到 LINE」，LINE 會自動打開並幫你填好預約資料，<b>直接按送出</b>就可以了。接著再<b>傳毛孩照片</b>給我。"
       : "請按下面的按鈕複製預約資料，回到 LINE 貼給我，並且<b>一起傳毛孩照片</b>。"} 我確認時段後會通知你付款。</div>
     <div class="row-btns">
@@ -358,7 +354,6 @@ function stepDone() {
       ${!send && h ? `<a class="btn line big" href="${h}" target="_blank" rel="noopener">開啟 LINE</a>` : ""}
     </div>
     <div class="note">📷 記得準備：${svc().prepare.map(esc).join("；")}</div>
-    <p class="center muted" style="margin-top:16px">之後可以隨時用預約編號 <a href="status.html?id=${state.code}">查詢預約進度</a>。建議截圖保存這個畫面。</p>
     <div class="row-btns"><a class="btn ghost" href="index.html">回到首頁</a></div>`;
   $("#copy").onclick = async () => {
     const ok = await copyText(text);
