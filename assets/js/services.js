@@ -3,8 +3,8 @@
 
 // 套組方案（溝通＋似顏繪）的 key 都以 -art 結尾
 export const isBundle = key => /-art$/.test(key || "");
-// 套組價 = 溝通價 + 這個金額；劃掉的原價 = 溝通價 + ART_ALONE（單獨委託手繪另計 NT$2,000）；有 bundlePrice 的方案直接用那個價錢
-const BUNDLE_EXTRA = 1200;
+// 套組價 = 溝通價 + 這個金額；劃掉的原價 = 溝通價 + ART_ALONE（單獨委託手繪 NT$1,500）；有 bundlePrice 的方案直接用那個價錢
+const BUNDLE_EXTRA = 1000;
 const ART_ALONE = 1500;
 function withBundles(plans, skip = []) {
   const out = plans.map(p => ({ ...p }));
@@ -160,7 +160,7 @@ export const SERVICES = {
     detailUrl: "illustration.html",
     slot: "none",
     plans: [
-      { key: "hand", label: "手繪似顏繪", meta: "含畫框・含運費・寄送實體作品", price: 2000 }
+      { key: "hand", label: "手繪似顏繪", meta: "含畫框・含運費・寄送實體作品", price: 1500 }
     ],
     addons: [],
     mustKnow: [
