@@ -1,6 +1,6 @@
 import { chrome, esc, toast, copyText } from "./common.js";
 import { SERVICES, SERVICE_ORDER, STATUS, money } from "./services.js";
-import { isDemo, onAdmin, adminLogin, adminLogout, watchBookings, watchSlots, adminWrite, getSettings, saveSettings, slotAt, slotLabel, fmtCode, resetDemo } from "./db.js";
+import { timesFor, isDemo, onAdmin, adminLogin, adminLogout, watchBookings, watchSlots, adminWrite, getSettings, saveSettings, slotAt, slotLabel, fmtCode, resetDemo } from "./db.js";
 
 chrome("admin", { cta: false });
 const $ = s => document.querySelector(s);
@@ -255,14 +255,15 @@ $("#sWd").innerHTML = WD.map((w, i) => `<label><input type="checkbox" value="${i
 function planSlots() {
   const from = $("#sFrom").value, to = $("#sTo").value;
   const wds = new Set([...$("#sWd").querySelectorAll("input:checked")].map(i => +i.value));
-  const times = [...new Set(($("#sTimes").value.match(/\d{1,2}[:：]\d{2}/g) || []).map(t => { const [h, m] = t.split(/[:：]/); return `${h.padStart(2, "0")}:${m}`; }))]
+  const fixed = $("#sFixed").checked;
+  const custom = [...new Set(($("#sTimes").value.match(/\d{1,2}[:：]\d{2}/g) || []).map(t => { const [h, m] = t.split(/[:：]/); return `${h.padStart(2, "0")}:${m}`; }))]
     .filter(t => +t.slice(0, 2) < 24 && +t.slice(3) < 60).sort();
-  if (!from || !to || !times.length) return [];
+  if (!from || !to || (!fixed && !custom.length)) return [];
   const out = [];
   for (let d = new Date(from + "T00:00:00Z"); d <= new Date(to + "T00:00:00Z") && out.length < 500; d = new Date(+d + 86400e3)) {
     if (!wds.has(d.getUTCDay())) continue;
     const date = d.toISOString().slice(0, 10);
-    for (const time of times) {
+    for (const time of (fixed ? timesFor(date) : custom)) {
       const at = slotAt(date, time);
       if (at < Date.now()) continue;
       if (slots.some(s => s.date === date && s.time === time)) continue;
@@ -274,6 +275,7 @@ function planSlots() {
 const preview = () => { const n = planSlots().length; $("#sPreview").textContent = n ? `將新增 ${n} 個時段（已存在的會自動略過）` : "請選擇日期並填寫時間"; };
 ["#sFrom", "#sTo", "#sTimes"].forEach(s => $(s).oninput = preview);
 $("#sWd").onchange = preview;
+$("#sFixed").onchange = () => { $("#sTimesBox").classList.toggle("hidden", $("#sFixed").checked); preview(); };
 preview();
 $("#sAdd").onclick = async () => {
   const arr = planSlots();

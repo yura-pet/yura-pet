@@ -106,7 +106,8 @@
           <div class="field"><label for="sFrom">開始日期</label><input type="date" id="sFrom"></div>
           <div class="field"><label for="sTo">結束日期</label><input type="date" id="sTo"></div>
           <div class="field full"><div class="lbl">星期</div><div class="wd" id="sWd"></div></div>
-          <div class="field full"><label for="sTimes">時間（可以填多個，用逗號或空白分開）</label><input type="text" id="sTimes" value="11:00, 14:00, 15:00, 19:00, 20:00" placeholder="例：11:00, 14:00, 15:00, 19:00, 20:00"></div>
+          <div class="field full"><label class="choice"><input type="checkbox" id="sFixed" checked><span class="c-main"><span class="c-t">使用固定時段</span><span class="c-m">　平日 11:00、14:00、15:00、19:00、20:00｜六日 19:00、20:00</span></span></label></div>
+          <div class="field full hidden" id="sTimesBox"><label for="sTimes">自訂時間（可以填多個，用逗號或空白分開）</label><input type="text" id="sTimes" placeholder="例：11:00, 14:00, 20:30"></div>
         </div>
         <p class="muted" id="sPreview"></p>
         <div class="wiz-nav"><button class="btn primary" id="sAdd" type="button">新增時段</button></div>
