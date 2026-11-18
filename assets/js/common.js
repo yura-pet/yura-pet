@@ -23,7 +23,7 @@ export function chrome(active, { cta = true } = {}) {
   }
   const f = document.createElement("footer");
   f.className = "footer";
-  f.innerHTML = `<div><a href="index.html">服務總覽</a>·<a href="illustration.html">似顏繪</a>·<a href="book.html">線上預約</a></div>© Yura Pet Communication`;
+  f.innerHTML = `<div><a href="index.html">服務總覽</a>·<a href="illustration.html">似顏繪</a>·<a href="book.html">線上預約</a>·<a href="https://www.instagram.com/yura_vvvvvv/" target="_blank" rel="noopener">Instagram</a></div>© Yura Pet Communication`;
   (document.querySelector(".wrap") || document.body).append(f);
 }
 
