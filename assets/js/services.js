@@ -94,17 +94,24 @@ export const SERVICES = {
     fields: [
       { key: "petName", label: "毛孩名字", type: "text", required: true },
       { key: "petInfo", label: "品種與年齡", type: "text", placeholder: "例：柴犬・離世時 12 歲" },
-      { key: "passedTime", label: "離世時間", type: "text", required: true, placeholder: "例：2026 年 9 月初" },
+      { key: "passedTime", label: "離世時間", type: "text", required: true, placeholder: "例：2026 年 9 月初",
+        hint: "選超度的話，請盡量寫到日期與時間，例如 2026/09/03 晚上 10 點。" },
       { key: "ceremony", label: "火化與法事是否已完成", type: "select", required: true,
         options: ["已完成", "尚未完成", "不確定"],
         hint: "如果最想了解的是轉世相關問題，建議在火化與法事完成之後再溝通，資訊會更完整穩定。" },
       { key: "questions", label: "想詢問的內容", type: "textarea", required: true, placeholder: "最重要的問題請放在前面" },
+      { key: "salvationNote", type: "note", showIf: s => ["salvation", "salvation-art"].includes(s.plan),
+        text: "🕯️ 超度需要飼主的資料：老師會依照這些資料進行事前確認與儀式準備。資料只會用在這次的超度。另外請在 LINE 傳一張飼主的照片。" },
+      { key: "ownerName", label: "飼主姓名", type: "text", required: true, showIf: s => ["salvation", "salvation-art"].includes(s.plan) },
+      { key: "ownerBirth", label: "飼主國曆出生日期、時間", type: "text", required: true, placeholder: "例：1990/05/20 早上 8 點（時間不知道可填不確定）", showIf: s => ["salvation", "salvation-art"].includes(s.plan) },
+      { key: "ownerBirthPlace", label: "飼主出生地", type: "text", required: true, placeholder: "例：台中市", showIf: s => ["salvation", "salvation-art"].includes(s.plan) },
+      { key: "ownerAddress", label: "飼主目前居住地址", type: "text", required: true, showIf: s => ["salvation", "salvation-art"].includes(s.plan) },
       { key: "message", label: "想對牠說的話", type: "textarea",
         placeholder: "想念、感謝、道歉、遺憾…都可以交給我傳達",
         hint: "建議在溝通前先寫一封懺悔信給牠，不用很長，真實就好。" },
       ...ART_FIELDS
     ],
-    prepare: ["清楚、能辨識毛孩樣貌的照片（送出後回 LINE 傳給我）", "一封想對牠說的懺悔信（建議）"]
+    prepare: ["清楚、能辨識毛孩樣貌的照片（送出後回 LINE 傳給我）", "一封想對牠說的懺悔信（建議）", "選超度的話：飼主的照片"]
   },
 
   search: {
