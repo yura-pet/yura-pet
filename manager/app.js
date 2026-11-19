@@ -6,6 +6,8 @@
 const SOURCES  = ["官方LINE", "IG", "介紹", "網站預約"];
 const CHANNELS = ["官方LINE", "IG"];
 const METHODS  = ["文字", "語音", "視訊"];
+// 加時（價錢給你參考，總金額請自己填）
+const EXTS = { "": "不加時", "10": "加時 10 分鐘（NT$500）", "20": "加時 20 分鐘（NT$900）" };
 const SERVICES = [
   "一般溝通｜單寵", "一般溝通｜多寵（2 隻）", "一般溝通｜三寵（3 隻）", "一般溝通｜緊急",
   "套組｜一般溝通單寵＋似顏繪", "套組｜一般溝通雙寵＋似顏繪", "套組｜一般溝通三寵＋似顏繪",
@@ -173,7 +175,7 @@ function render() {
 
 function bookingLine(b) {
   const p = pay(b);
-  return [b.service, b.method, b.channel && "於" + b.channel].filter(Boolean).join("・") + ` <span class="badge ${p.st}">${p.label}</span>` +
+  return [b.service, b.ext ? `加時 ${b.ext} 分` : "", b.method, b.channel && "於" + b.channel].filter(Boolean).join("・") + ` <span class="badge ${p.st}">${p.label}</span>` +
     (b.status !== "booked" ? ` <span class="badge st-${b.status}">${STATUS[b.status]}</span>` : "");
 }
 
@@ -304,7 +306,7 @@ function renderStats() {
     const max = Math.max(1, ...arr.map(x => x[1].n));
     return `<div class="bd"><h4>${title}</h4>${arr.length ? arr.map(([k, v]) => `<div class="bar"><span>${esc(k)}</span><span class="v">${v.n} 筆・${money(v.amt)}</span><div class="tr"><div class="fill" style="width:${v.n / max * 100}%"></div></div></div>`).join("") : `<div class="muted small">沒有資料</div>`}</div>`;
   };
-  $("#breakdowns").innerHTML = group("預約項目", b => b.service) + group("客人來源", b => b.source) + group("溝通方式", b => b.method) + group("溝通地點", b => b.channel)
+  $("#breakdowns").innerHTML = group("預約項目", b => b.service) + group("客人來源", b => b.source) + group("溝通方式", b => b.method) + group("加時", b => b.ext ? `加時 ${b.ext} 分鐘` : "不加時") + group("溝通地點", b => b.channel)
     + (statRange !== "month" ? group("每月預約", b => b.date.slice(0, 7)) : "");
 }
 
@@ -339,6 +341,8 @@ function openBooking(b, preset = {}) {
   $("#f_status").innerHTML = Object.entries(STATUS).map(([k, v]) => `<option value="${k}" ${k === x.status ? "selected" : ""}>${v}</option>`).join("");
   $("#f_channel").innerHTML = opts(CHANNELS, x.channel, "請選擇");
   $("#f_method").innerHTML = opts(METHODS, x.method, "請選擇");
+  $("#f_ext").innerHTML = Object.entries(EXTS).map(([k, v]) => `<option value="${k}" ${String(x.ext || "") === k ? "selected" : ""}>${v}</option>`).join("");
+  $("#extHint").textContent = "";
   $("#f_total").value = x.total ?? "";
   $("#f_deposit").value = x.deposit ?? "";
   $("#f_depositPaid").checked = !!x.depositPaid;
@@ -360,6 +364,8 @@ function updatePay() {
   $("#paidAtOut").textContent = bkDlg.dataset.paidAt ? `付清日期：${dLabel(bkDlg.dataset.paidAt)}` : "";
 }
 ["#f_total", "#f_deposit"].forEach(s => $(s).oninput = updatePay);
+$("#f_ext").onchange = () => { const v = $("#f_ext").value;
+  $("#extHint").textContent = v ? `記得把加時的 NT$${v === "10" ? 500 : 900} 算進總金額` : ""; };
 ["#f_depositPaid", "#f_balancePaid"].forEach(s => $(s).onchange = updatePay);
 $("#payAll").onclick = () => {
   if (num($("#f_total").value) === null) {
@@ -400,7 +406,7 @@ $("#bkForm").onsubmit = async e => {
   const b = {
     ...(editing || { id: uid(), createdAt: Date.now() }),
     customerId: c.id, customerName: name, pet: $("#f_pet").value.trim(), service: $("#f_service").value,
-    source: $("#f_source").value, channel: $("#f_channel").value, method: $("#f_method").value,
+    source: $("#f_source").value, channel: $("#f_channel").value, method: $("#f_method").value, ext: $("#f_ext").value,
     date: formDate(), time: $("#f_time").value, status: $("#f_status").value,
     ...p, paidAt: pay(p).st === "paid" ? (bkDlg.dataset.paidAt || todayStr()) : "", note: $("#f_note").value.trim()
   };

@@ -84,6 +84,7 @@ async function publicBooking(s, body) {
   const b = { id: uid(), createdAt: Date.now(), updatedAt: Date.now(), web: true, status: "pending",
     customerId: c.id, customerName: c.name, pet: str(body.petName, 200) || "（未填）",
     service: `${str(body.serviceName, 40)}｜${str(body.planLabel, 80)}`, source: "網站預約", channel: "官方LINE", method: str(body.method, 20),
+    ext: addons.some(a => a.key === "ext20") ? "20" : addons.some(a => a.key === "ext10") ? "10" : "",
     date: pick ? pick.date : twToday(), time: pick ? pick.time : "待安排",
     total: null, deposit: null, depositPaid: false, balancePaid: false, paidAt: "", note };
   await s.setJSON(KINDS.bookings + b.id, b);
