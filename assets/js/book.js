@@ -257,7 +257,7 @@ async function stepSlots() {
     try { slots = await listOpenSlots(); } catch (e) { console.warn(e); slots = []; }
   }
   // 移除已經不存在的選擇
-  state.picks = state.picks.filter(id => slots.some(x => x.id === id));
+  state.picks = state.picks.filter(id => slots.some(x => x.id === id && x.status !== "full"));
   const byDay = {};
   slots.forEach(x => (byDay[x.date] ||= []).push(x));
   const required = s.slot === "required";
@@ -282,7 +282,7 @@ async function stepSlots() {
 
   // ---- 日曆 ----
   const WDN = ["日", "一", "二", "三", "四", "五", "六"];
-  const days = Object.keys(byDay).sort();
+  const days = Object.keys(byDay).filter(d => byDay[d].some(x => x.status !== "full")).sort();
   const months = [...new Set(days.map(d => d.slice(0, 7)))];
   if (!none) {
     if (!state.calDay || !byDay[state.calDay]) state.calDay = state.picks.length ? slots.find(x => x.id === state.picks[0]).date : days[0];
@@ -296,10 +296,10 @@ async function stepSlots() {
     let cells = "";
     for (let i = 0; i < first; i++) cells += `<span class="cd empty"></span>`;
     for (let d = 1; d <= n; d++) {
-      const key = `${state.calMonth}-${String(d).padStart(2, "0")}`, list = byDay[key];
+      const key = `${state.calMonth}-${String(d).padStart(2, "0")}`, all = byDay[key], list = all && all.filter(x => x.status !== "full").length ? all : null;
       const wd = (first + d - 1) % 7;
       cells += list
-        ? `<button type="button" class="cd open ${key === state.calDay ? "sel" : ""} ${dayHasPick(key) ? "picked" : ""} ${wd === 0 || wd === 6 ? "we" : ""}" data-day="${key}"><b>${d}</b><i>${list.length} 個時段</i></button>`
+        ? `<button type="button" class="cd open ${key === state.calDay ? "sel" : ""} ${dayHasPick(key) ? "picked" : ""} ${wd === 0 || wd === 6 ? "we" : ""}" data-day="${key}"><b>${d}</b><i>${list.filter(x => x.status !== "full").length} 個時段</i></button>`
         : `<span class="cd off"><b>${d}</b></span>`;
     }
     $("#cal").innerHTML = `<div class="cal-h">
@@ -319,8 +319,9 @@ async function stepSlots() {
     const list = byDay[state.calDay] || [];
     $("#dayTimes").innerHTML = list.length ? `<div class="slot-day"><h4>${esc(slotLabel(list[0]).split("）")[0])}）可以選的時段</h4>
       <div class="slot-list">${list.map(x => { const i = state.picks.indexOf(x.id);
+        if (x.status === "full") return `<button type="button" class="slot full" disabled>${esc(x.time)}<span class="tag">已約滿</span></button>`;
         return `<button type="button" class="slot ${i === 0 ? "p1" : i === 1 ? "p2" : ""}" data-id="${x.id}">${esc(x.time)}${i >= 0 ? `<span class="tag">${i === 0 ? "第一志願" : "第二志願"}</span>` : ""}</button>`; }).join("")}</div></div>` : "";
-    $("#dayTimes").querySelectorAll(".slot").forEach(bt => bt.onclick = () => {
+    $("#dayTimes").querySelectorAll(".slot:not(.full)").forEach(bt => bt.onclick = () => {
       const id = bt.dataset.id, i = state.picks.indexOf(id);
       if (i >= 0) state.picks.splice(i, 1); else if (state.picks.length < 2) state.picks.push(id); else state.picks[1] = id;
       saveDraft(); drawAll();
