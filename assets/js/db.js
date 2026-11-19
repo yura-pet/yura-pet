@@ -41,14 +41,14 @@ const LS = {
   get(k, d) { try { return JSON.parse(localStorage.getItem("yura_demo_" + k)) ?? d; } catch { return d; } },
   set(k, v) { try { localStorage.setItem("yura_demo_" + k, JSON.stringify(v)); } catch {} window.dispatchEvent(new Event("yura-demo-change")); }
 };
-const SEED_VERSION = 3;
+const SEED_VERSION = 4;
 export const timesFor = date => { const wd = new Date(date + "T00:00:00Z").getUTCDay(); return (wd === 0 || wd === 6) ? CONFIG.defaults.weekendTimes : CONFIG.defaults.weekdayTimes; };
 function demoSeedSlots() {
   if (LS.get("seeded", 0) === SEED_VERSION) return;
   // 保留客人已經選走的時段，其他依照每天固定時段重新產生
   const slots = Object.fromEntries(Object.entries(LS.get("slots", {})).filter(([, s]) => s.status !== "open"));
   const now = Date.now();
-  for (let i = 1; i <= 14; i++) {
+  for (let i = 0; i <= 45; i++) {
     const d = new Date(now + i * 86400e3 + 8 * 3600e3);
     const date = d.toISOString().slice(0, 10);
     for (const time of timesFor(date)) {

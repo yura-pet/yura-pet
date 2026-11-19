@@ -267,11 +267,10 @@ async function stepSlots() {
   stage.innerHTML = `
     ${s.slotHint ? `<div class="note">${esc(s.slotHint)}</div>` : ""}
     ${none ? `<div class="note">目前沒有開放的線上時段，請直接提供 2 個你可以配合的時間，我會回覆可以安排的時段。</div>` : `
-      <p>點選你可以的時間：<b>第一次點的是第一志願</b>，再點一個當第二志願（可不選）。實際時間以我在 LINE 回覆確認為準。</p>
-      <div id="slotBox">${Object.entries(byDay).map(([d, arr]) => `
-        <div class="slot-day"><h4>${esc(slotLabel(arr[0]).split("）")[0])}）</h4>
-        <div class="slot-list">${arr.map(x => `<button type="button" class="slot" data-id="${x.id}">${esc(x.time)}</button>`).join("")}</div></div>`).join("")}
-      </div>
+      <p><b>先點日期，再選時段。</b>第一個選的是第一志願，可以再選一個當第二志願（可不選）。實際時間以我在 LINE 回覆確認為準。</p>
+      <div class="cal" id="cal"></div>
+      <div id="dayTimes"></div>
+      <div id="pickSum"></div>
       <label class="choice" style="margin-top:16px"><input type="checkbox" id="noFit" ${state.noFit ? "checked" : ""}>
         <span class="c-main"><span class="c-t">以上時間都不適合，我想自己提供時間</span></span></label>`}
     <div class="field ${state.noFit ? "" : "hidden"}" id="customBox">
@@ -281,19 +280,58 @@ async function stepSlots() {
     </div>
     ${navBtns(2)}`;
 
-  const paint = () => stage.querySelectorAll(".slot").forEach(b => {
-    const i = state.picks.indexOf(b.dataset.id);
-    b.className = "slot" + (i === 0 ? " p1" : i === 1 ? " p2" : "");
-    b.innerHTML = esc(slots.find(x => x.id === b.dataset.id).time) + (i >= 0 ? `<span class="tag">${i === 0 ? "第一志願" : "第二志願"}</span>` : "");
-  });
-  stage.querySelectorAll(".slot").forEach(b => b.onclick = () => {
-    const id = b.dataset.id, i = state.picks.indexOf(id);
-    if (i >= 0) state.picks.splice(i, 1);
-    else if (state.picks.length < 2) state.picks.push(id);
-    else state.picks[1] = id;
-    saveDraft(); paint();
-  });
-  paint();
+  // ---- 日曆 ----
+  const WDN = ["日", "一", "二", "三", "四", "五", "六"];
+  const days = Object.keys(byDay).sort();
+  const months = [...new Set(days.map(d => d.slice(0, 7)))];
+  if (!none) {
+    if (!state.calDay || !byDay[state.calDay]) state.calDay = state.picks.length ? slots.find(x => x.id === state.picks[0]).date : days[0];
+    if (!state.calMonth || !months.includes(state.calMonth)) state.calMonth = state.calDay.slice(0, 7);
+  }
+  const dayHasPick = d => state.picks.some(id => slots.find(x => x.id === id)?.date === d);
+  const drawCal = () => {
+    const [y, m] = state.calMonth.split("-").map(Number);
+    const first = new Date(Date.UTC(y, m - 1, 1)).getUTCDay(), n = new Date(Date.UTC(y, m, 0)).getUTCDate();
+    const mi = months.indexOf(state.calMonth);
+    let cells = "";
+    for (let i = 0; i < first; i++) cells += `<span class="cd empty"></span>`;
+    for (let d = 1; d <= n; d++) {
+      const key = `${state.calMonth}-${String(d).padStart(2, "0")}`, list = byDay[key];
+      const wd = (first + d - 1) % 7;
+      cells += list
+        ? `<button type="button" class="cd open ${key === state.calDay ? "sel" : ""} ${dayHasPick(key) ? "picked" : ""} ${wd === 0 || wd === 6 ? "we" : ""}" data-day="${key}"><b>${d}</b><i>${list.length} 個時段</i></button>`
+        : `<span class="cd off"><b>${d}</b></span>`;
+    }
+    $("#cal").innerHTML = `<div class="cal-h">
+        <button type="button" class="cal-nav" data-mv="-1" ${mi <= 0 ? "disabled" : ""} aria-label="上個月">‹</button>
+        <b>${y} 年 ${m} 月</b>
+        <button type="button" class="cal-nav" data-mv="1" ${mi >= months.length - 1 ? "disabled" : ""} aria-label="下個月">›</button></div>
+      <div class="cal-w">${WDN.map(w => `<span>${w}</span>`).join("")}</div>
+      <div class="cal-g">${cells}</div>`;
+    $("#cal").querySelectorAll("[data-mv]").forEach(bt => bt.onclick = () => {
+      state.calMonth = months[mi + +bt.dataset.mv]; const inMonth = days.find(d => d.startsWith(state.calMonth));
+      if (!state.calDay?.startsWith(state.calMonth)) state.calDay = inMonth; saveDraft(); drawAll();
+    });
+    $("#cal").querySelectorAll("[data-day]").forEach(bt => bt.onclick = () => { state.calDay = bt.dataset.day; saveDraft(); drawAll();
+      $("#dayTimes").scrollIntoView({ behavior: "smooth", block: "nearest" }); });
+  };
+  const drawTimes = () => {
+    const list = byDay[state.calDay] || [];
+    $("#dayTimes").innerHTML = list.length ? `<div class="slot-day"><h4>${esc(slotLabel(list[0]).split("）")[0])}）可以選的時段</h4>
+      <div class="slot-list">${list.map(x => { const i = state.picks.indexOf(x.id);
+        return `<button type="button" class="slot ${i === 0 ? "p1" : i === 1 ? "p2" : ""}" data-id="${x.id}">${esc(x.time)}${i >= 0 ? `<span class="tag">${i === 0 ? "第一志願" : "第二志願"}</span>` : ""}</button>`; }).join("")}</div></div>` : "";
+    $("#dayTimes").querySelectorAll(".slot").forEach(bt => bt.onclick = () => {
+      const id = bt.dataset.id, i = state.picks.indexOf(id);
+      if (i >= 0) state.picks.splice(i, 1); else if (state.picks.length < 2) state.picks.push(id); else state.picks[1] = id;
+      saveDraft(); drawAll();
+    });
+  };
+  const drawSum = () => {
+    $("#pickSum").innerHTML = state.picks.length ? `<div class="pick-sum">${state.picks.map((id, i) => `<div><span class="pk ${i ? "p2" : "p1"}">${i ? "第二志願" : "第一志願"}</span>${esc(slotLabel(slots.find(x => x.id === id)))}<button type="button" class="pk-x" data-rm="${id}" aria-label="取消">✕</button></div>`).join("")}</div>` : "";
+    $("#pickSum").querySelectorAll("[data-rm]").forEach(bt => bt.onclick = () => { state.picks = state.picks.filter(x => x !== bt.dataset.rm); saveDraft(); drawAll(); });
+  };
+  const drawAll = () => { if (none) return; drawCal(); drawTimes(); drawSum(); };
+  drawAll();
   const nf = $("#noFit");
   if (nf) nf.onchange = () => { state.noFit = nf.checked; $("#customBox").classList.toggle("hidden", !nf.checked); saveDraft(); };
   $("#customTimes").oninput = e => { state.customTimes = e.target.value; e.target.classList.remove("invalid"); saveDraft(); };

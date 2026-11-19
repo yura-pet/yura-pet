@@ -248,3 +248,32 @@ a.plan-row:hover{background:rgba(255,240,231,.7)}
 .time-notes b{color:var(--ink-deep);margin-right:4px}
 .about-hook{font-size:19px;color:var(--ink-deep);margin:4px 0 12px}
 .about-hook span{font-family:var(--title-font);font-size:24px;color:var(--pink-strong);-webkit-text-stroke:.3px currentColor}
+
+/* ---------- 預約日曆 ---------- */
+.cal{margin-top:12px;padding:14px;border-radius:20px;background:rgba(255,255,255,.72);border:1px solid rgba(215,154,130,.24)}
+.cal-h{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.cal-h b{font-size:18px;color:var(--ink-deep)}
+.cal-nav{width:40px;height:40px;border-radius:50%;border:1px solid rgba(215,154,130,.35);background:#fff;font-size:22px;color:var(--ink-deep);cursor:pointer;line-height:1}
+.cal-nav[disabled]{opacity:.3;cursor:default}
+.cal-w,.cal-g{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px}
+.cal-w span{text-align:center;font-size:13px;font-weight:700;color:var(--muted)}
+.cal-w span:first-child,.cal-w span:last-child{color:var(--pink-strong)}
+.cd{aspect-ratio:1/1;max-width:100%;border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;font:inherit;padding:0}
+.cd b{font-size:16px;line-height:1.1}
+.cd i{font-style:normal;font-size:10px;line-height:1.2;color:var(--muted)}
+.cd.off{color:rgba(126,149,174,.45)}
+.cd.empty{visibility:hidden}
+.cd.open{border:1px solid rgba(215,154,130,.4);background:#fff;color:var(--ink-deep);cursor:pointer}
+.cd.open.we{background:#fff6f0}
+.cd.open:hover{border-color:var(--pink)}
+.cd.sel{background:var(--pink-strong)!important;border-color:var(--pink-strong);color:#fff}
+.cd.sel i{color:#fff}
+.cd.picked{box-shadow:inset 0 -4px 0 var(--pink)}
+.cd.sel.picked{box-shadow:inset 0 -4px 0 #fff}
+@media(max-width:420px){.cd i{display:none}}
+#dayTimes .slot-day{margin-top:14px}
+.pick-sum{margin-top:14px;display:grid;gap:6px}
+.pick-sum div{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:14px;background:rgba(255,240,231,.9);font-size:16px;color:var(--ink-deep)}
+.pk{font-size:12px;font-weight:700;padding:1px 9px;border-radius:99px;background:var(--pink-strong);color:#fff}
+.pk.p2{background:#fff;color:var(--pink-strong);border:1px solid var(--pink)}
+.pk-x{margin-left:auto;border:0;background:none;color:var(--muted);font-size:16px;cursor:pointer}
