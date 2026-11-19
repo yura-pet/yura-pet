@@ -128,7 +128,10 @@ export async function listOpenSlots() {
     const snap = await fs.getDocs(q);
     arr = snap.docs.map(d => ({ id: d.id, ...d.data() }));
   }
-  return arr.filter(s => s.status === "open" && s.at > now).sort((a, b) => a.at - b.at);
+  const full = CONFIG.defaults.fullSlots || {};
+  return arr.filter(s => s.status === "open" && s.at > now)
+    .map(s => (full[s.date] || []).includes(s.time) ? { ...s, status: "full" } : s)
+    .sort((a, b) => a.at - b.at);
 }
 
 // ---------- 公開：送出預約 ----------

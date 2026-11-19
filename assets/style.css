@@ -277,3 +277,5 @@ a.plan-row:hover{background:rgba(255,240,231,.7)}
 .pk{font-size:12px;font-weight:700;padding:1px 9px;border-radius:99px;background:var(--pink-strong);color:#fff}
 .pk.p2{background:#fff;color:var(--pink-strong);border:1px solid var(--pink)}
 .pk-x{margin-left:auto;border:0;background:none;color:var(--muted);font-size:16px;cursor:pointer}
+.slot.full{background:#f3f3f5;border-color:#e2e3e8;color:#a3a7b3;text-decoration:line-through;cursor:not-allowed}
+.slot.full .tag{text-decoration:none;color:#a3a7b3;border-color:#d5d7de}
