@@ -231,3 +231,33 @@ input[type=search]{margin-bottom:6px}
 .acard .acts{display:flex;gap:6px;justify-content:flex-end}
 .acard .acts .btn{min-height:30px;padding:2px 10px;font-size:13px}
 .chip.art{background:#fff1cf;color:#80600e}
+
+/* ---- 時段設定 ---- */
+.wk-row{display:grid;grid-template-columns:52px 1fr;gap:10px;align-items:center;padding:12px 0;border-top:1px dashed var(--line)}
+.wk-row:first-child{border-top:0}
+.wk-row>b{font-size:16px}
+.tchips{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.tchip{display:inline-flex;align-items:center;gap:4px;padding:5px 6px 5px 12px;border-radius:12px;background:var(--blue-soft);color:var(--blue-deep);font-weight:700;font-variant-numeric:tabular-nums}
+.tchip button{border:0;background:none;color:var(--blue-deep);font-size:15px;cursor:pointer;padding:0 4px;opacity:.7}
+.tchip.extra{background:#e5f5ec;color:#2f7a57}.tchip.extra button{color:#2f7a57}
+.tchip.block{background:#fde8ea;color:#a8434f;text-decoration:line-through}.tchip.block button{color:#a8434f}
+.tchip.taken{background:#f1f1f4;color:#8b8da3}
+.tadd{width:auto;padding:5px 10px;font-size:14px;border-radius:12px;border:1px dashed rgba(91,127,199,.4);background:#fff;color:var(--muted)}
+.day-ctl{margin-top:14px;display:grid;gap:10px}
+.dc-box{padding:12px 14px;border-radius:16px;border:1px solid var(--line);background:#fff}
+.dc-box h4{font-size:14px;margin-bottom:8px}
+.dc-box.extra{background:#f2fbf6;border-color:rgba(79,154,120,.25)}
+.dc-box.block{background:#fdf3f4;border-color:rgba(201,93,106,.2)}
+.dc-top{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.btn.off{background:#fde8ea;color:#a8434f;border-color:rgba(201,93,106,.25)}
+.closed-note{padding:12px 14px;border-radius:14px;background:#fde8ea;color:#a8434f;font-weight:700}
+.day .dn i{font-style:normal;font-size:11px;font-weight:700;color:#a8434f;background:#fde8ea;border-radius:6px;padding:0 5px}
+.day.closed{background:repeating-linear-gradient(135deg,rgba(253,232,234,.7) 0 6px,rgba(255,255,255,.75) 6px 12px)}
+.sp-row{display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-top:1px dashed var(--line);font-size:14px;cursor:pointer}
+.sp-row:first-child{border-top:0}
+.sp-row b{min-width:92px}
+/* ---- 網站預約 ---- */
+.pending-panel{border:2px solid var(--yellow-deep);background:linear-gradient(135deg,#fff8dc,#fffdf5)}
+.badge.st-pending{background:#fff1cf;color:#94640f}
+.chip.st-pending{background:#fff1cf;color:#80600e;box-shadow:inset 3px 0 0 var(--yellow-deep)}
+.tab-cnt.alert{background:var(--danger);color:#fff}

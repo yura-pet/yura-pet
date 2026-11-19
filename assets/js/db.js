@@ -82,8 +82,42 @@ export async function getSettings() {
 }
 
 // ---------- 公開：可預約時段 ----------
+// ---------- 後台（Netlify）連線 ----------
+let remote = null; // 讀到後台設定時 = { byId: {slotId: {date,time}} }
+async function fetchJSON(url, opts = {}, ms = 6000) {
+  const ctl = new AbortController(); const t = setTimeout(() => ctl.abort(), ms);
+  try { const r = await fetch(url, { ...opts, signal: ctl.signal }); const d = await r.json().catch(() => ({})); return { ok: r.ok, status: r.status, data: d }; }
+  finally { clearTimeout(t); }
+}
+async function remoteSlots(now) {
+  if (!CONFIG.managerApi) return null;
+  try {
+    const r = await fetchJSON(CONFIG.managerApi + "/availability");
+    if (!r.ok || !r.data || !r.data.weekly) return null;
+    const { weekly, closed = {}, extra = {}, blocked = {}, taken = [] } = r.data;
+    const takenSet = new Set(taken), out = [], byId = {};
+    for (let i = 0; i <= 45; i++) {
+      const date = new Date(Date.now() + 8 * 3600e3 + i * 86400e3).toISOString().slice(0, 10);
+      if (closed[date]) continue;
+      const wd = new Date(date + "T00:00:00Z").getUTCDay();
+      const times = [...new Set([...(weekly[wd] || []), ...(extra[date] || [])])].sort();
+      for (const time of times) {
+        if ((blocked[date] || []).includes(time) || takenSet.has(date + " " + time)) continue;
+        const at = slotAt(date, time); if (at <= now) continue;
+        const id = date.replace(/-/g, "") + time.replace(":", "");
+        out.push({ id, date, time, at, status: "open" }); byId[id] = { date, time };
+      }
+    }
+    remote = { byId };
+    return out;
+  } catch (e) { console.warn("後台連不上，改用固定時段", e); return null; }
+}
+
 export async function listOpenSlots() {
   const now = Date.now() + 2 * 3600e3; // 2 小時內的時段不開放
+  const r = await remoteSlots(now);
+  if (r) return r;
+  remote = null;
   let arr = [];
   if (isDemo) {
     demoSeedSlots();
@@ -101,6 +135,15 @@ export async function listOpenSlots() {
 export async function createBooking(data) {
   const code = newCode();
   const slotIds = data.slotIds || [];
+  if (remote && CONFIG.managerApi) {
+    const ownerName = ((data.fields || []).find(f => f.key === "ownerName") || {}).value || "";
+    const body = { ...data, picks: slotIds.map(id => remote.byId[id]).filter(Boolean), email: (data.customer || {}).email || "", ownerName };
+    let r = null;
+    try { r = await fetchJSON(CONFIG.managerApi + "/booking", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) }, 10000); }
+    catch (e) { console.warn("送到後台失敗，只傳 LINE", e); }
+    if (r && r.status === 409) throw new Error("SLOT_TAKEN");
+    return code;
+  }
   if (isDemo) {
     const slots = LS.get("slots", {});
     for (const id of slotIds) if (!slots[id] || slots[id].status !== "open") throw new Error("SLOT_TAKEN");

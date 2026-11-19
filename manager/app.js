@@ -3,7 +3,7 @@
 "use strict";
 
 // ================= 選項（要改選項就改這裡） =================
-const SOURCES  = ["官方LINE", "IG", "介紹"];
+const SOURCES  = ["官方LINE", "IG", "介紹", "網站預約"];
 const CHANNELS = ["官方LINE", "IG"];
 const METHODS  = ["文字", "語音", "視訊"];
 const SERVICES = [
@@ -15,7 +15,9 @@ const SERVICES = [
   "套組｜找寵溝通＋似顏繪", "套組｜奇門遁甲＋似顏繪",
   "似顏繪｜手繪", "其他"
 ];
-const STATUS = { booked: "已預約", done: "已完成", cancelled: "已取消" };
+const STATUS = { pending: "待確認", booked: "已預約", done: "已完成", cancelled: "已取消" };
+const WD5 = ["11:00", "14:00", "15:00", "19:00", "20:00"], WE2 = ["19:00", "20:00"];
+const DEFAULT_CFG = { id: "config01", weekly: { 0: WE2, 1: WD5, 2: WD5, 3: WD5, 4: WD5, 5: WD5, 6: WE2 }, closed: {}, extra: {}, blocked: {} };
 const ART_STATUS = { queue: "排單中", drawing: "繪製中", ready: "完成待寄出", shipped: "已寄出" };
 const ART_ORDER = ["queue", "drawing", "ready", "shipped"];
 const FRAMES = ["大一點的框｜壓克力胡桃木", "小一點的框｜玻璃胡桃木", "小一點的框｜玻璃原木色"];
@@ -55,8 +57,8 @@ const PW_KEY = "yura_mgr_pw", LOCAL_KEY = "yura_mgr_local", CACHE_KEY = "yura_mg
 const ls = { get(k) { try { return localStorage.getItem(k); } catch { return null; } }, set(k, v) { try { localStorage.setItem(k, v); } catch {} }, del(k) { try { localStorage.removeItem(k); } catch {} } };
 let mode = "cloud"; // cloud | local
 let password = ls.get(PW_KEY) || sessionStorage.getItem(PW_KEY) || "";
-let DB = { bookings: [], customers: [], arts: [] };
-const fixDB = () => { DB.bookings ||= []; DB.customers ||= []; DB.arts ||= []; };
+let DB = { bookings: [], customers: [], arts: [], settings: [] };
+const fixDB = () => { DB.bookings ||= []; DB.customers ||= []; DB.arts ||= []; DB.settings ||= []; };
 
 async function api(method, path, body) {
   const r = await fetch("/api/" + path, {
@@ -74,7 +76,7 @@ async function loadAll() {
   if (mode === "local") { try { DB = JSON.parse(ls.get(LOCAL_KEY)) || DB; } catch {} fixDB(); render(); return; }
   setSync("同步中…");
   const d = await api("GET", "data");
-  DB = { bookings: d.bookings || [], customers: d.customers || [], arts: d.arts || [] };
+  DB = { bookings: d.bookings || [], customers: d.customers || [], arts: d.arts || [], settings: d.settings || [] };
   persistLocal(); render();
   setSync("已同步 " + nowHM());
 }
@@ -163,6 +165,9 @@ function render() {
   if (tab === "customers") renderCustomers();
   if (tab === "stats") renderStats();
   renderArts();
+  renderPending();
+  renderDayCtl();
+  if (tab === "slots") renderSlots();
   $("#dl_customers").innerHTML = DB.customers.map(c => `<option value="${esc(c.name)}">`).join("");
 }
 
@@ -205,8 +210,9 @@ function renderCal() {
     const list = (map[s] || []).sort(byTime);
     const n = list.filter(active).length;
     const show = list.slice(0, 3);
-    html += `<button type="button" class="day ${d.getMonth() !== m ? "out" : ""} ${s === t ? "today" : ""} ${s === selDay ? "sel" : ""}" data-day="${s}">
-      <div class="dn"><span>${d.getDate()}</span>${n ? `<em>${n}</em>` : ""}</div>
+    const isClosed = dayTimes(s).closed;
+    html += `<button type="button" class="day ${d.getMonth() !== m ? "out" : ""} ${s === t ? "today" : ""} ${s === selDay ? "sel" : ""} ${isClosed ? "closed" : ""}" data-day="${s}">
+      <div class="dn"><span>${d.getDate()}</span>${isClosed ? `<i>休</i>` : ""}${n ? `<em>${n}</em>` : ""}</div>
       ${show.map(b => `<div class="chip st-${b.status} ${active(b) && pay(b).st !== "paid" ? "unpaid" : ""}"><b>${esc(b.time)}</b><span>${esc(b.pet)}</span></div>`).join("")}
       ${list.length > 3 ? `<div class="more">+${list.length - 3}</div>` : ""}
       ${(artMap[s] || []).slice(0, 2).map(a => `<div class="chip art"><b>🎨</b><span>${esc(a.pet)}</span></div>`).join("")}
@@ -231,7 +237,7 @@ function renderDay() {
 }
 function renderUpcoming() {
   const t = todayStr(), end = ymd(new Date(Date.now() + 14 * 86400e3));
-  const list = DB.bookings.filter(b => b.status === "booked" && b.date > t && b.date <= end).sort(byTime);
+  const list = DB.bookings.filter(b => ["booked", "pending"].includes(b.status) && b.date > t && b.date <= end).sort(byTime);
   $("#upList").innerHTML = list.length ? list.map(b => rowHtml(b, true)).join("") : `<div class="empty">接下來兩週沒有預約</div>`;
 }
 function renderUnpaid() {
@@ -329,7 +335,7 @@ function openBooking(b, preset = {}) {
   $("#f_pet").value = x.pet || "";
   $("#f_service").innerHTML = opts(SERVICES, x.service, "請選擇");
   fillDateSelects(x.date);
-  $("#f_time").innerHTML = opts(TIMES, x.time, "請選擇時間");
+  $("#f_time").innerHTML = opts(TIMES, x.time, x.time === "待安排" ? "待安排（請選擇時間）" : "請選擇時間");
   $("#f_status").innerHTML = Object.entries(STATUS).map(([k, v]) => `<option value="${k}" ${k === x.status ? "selected" : ""}>${v}</option>`).join("");
   $("#f_channel").innerHTML = opts(CHANNELS, x.channel, "請選擇");
   $("#f_method").innerHTML = opts(METHODS, x.method, "請選擇");
@@ -460,6 +466,100 @@ $("#custDel").onclick = async () => {
 };
 $("#custBook").onclick = () => { custDlg.close(); openBooking(null, { customerName: editingCust.name, source: editingCust.source, date: selDay }); };
 
+// ================= 時段設定 =================
+const cfg = () => DB.settings[0] ? { ...DEFAULT_CFG, ...DB.settings[0] } : { ...DEFAULT_CFG };
+const sortT = a => [...new Set(a)].sort();
+const isTime = x => /^\d{2}:\d{2}$/.test(x || "");
+// 某一天：固定時段、加開、封鎖、公休、已被預約
+function dayTimes(date) {
+  const c = cfg(), wd = parseYmd(date).getDay();
+  const base = (c.weekly[wd] || []).slice();
+  const extra = (c.extra[date] || []).filter(x => !base.includes(x));
+  const blocked = c.blocked[date] || [];
+  const closed = !!c.closed[date];
+  const taken = DB.bookings.filter(b => b.date === date && ["booked", "pending"].includes(b.status) && isTime(b.time)).map(b => b.time);
+  const open = closed ? [] : sortT([...base, ...extra]).filter(x => !blocked.includes(x) && !taken.includes(x));
+  return { base, extra, blocked, closed, taken, open };
+}
+async function saveCfg(next, msg) {
+  const c = { ...cfg(), ...next, id: "config01" };
+  const clean = o => Object.fromEntries(Object.entries(o).filter(([, v]) => v && (!Array.isArray(v) || v.length)));
+  c.closed = clean(c.closed); c.extra = clean(c.extra); c.blocked = clean(c.blocked);
+  try { await put("settings", c); toast(msg || "時段已更新 ✨"); $("#slotSaved").textContent = "已儲存 " + nowHM(); } catch {}
+}
+const timeSelect = (attrs, exclude = [], label = "＋ 加時段") =>
+  `<select class="tadd" ${attrs}><option value="">${label}</option>${TIMES.filter(t => !exclude.includes(t)).map(t => `<option>${t}</option>`).join("")}</select>`;
+
+function renderSlots() {
+  const c = cfg(), order = [1, 2, 3, 4, 5, 6, 0];
+  $("#weekly").innerHTML = order.map(wd => `<div class="wk-row"><b>週${WD[wd]}</b><div class="tchips">
+    ${(c.weekly[wd] || []).map(t => `<span class="tchip">${t}<button type="button" data-wkdel="${wd}|${t}" aria-label="刪除">✕</button></span>`).join("")}
+    ${timeSelect(`data-wkadd="${wd}"`, c.weekly[wd] || [])}
+    ${(c.weekly[wd] || []).length ? "" : `<span class="muted small">公休</span>`}</div></div>`).join("");
+  $("#weekly").querySelectorAll("[data-wkdel]").forEach(b => b.onclick = () => {
+    const [wd, t] = b.dataset.wkdel.split("|"); const w = { ...cfg().weekly }; w[wd] = (w[wd] || []).filter(x => x !== t);
+    saveCfg({ weekly: w }, `週${WD[wd]} 已移除 ${t}`);
+  });
+  $("#weekly").querySelectorAll("[data-wkadd]").forEach(sel => sel.onchange = () => {
+    if (!sel.value) return; const wd = sel.dataset.wkadd; const w = { ...cfg().weekly }; w[wd] = sortT([...(w[wd] || []), sel.value]);
+    saveCfg({ weekly: w }, `週${WD[wd]} 已加開 ${sel.value}`);
+  });
+  const t = todayStr();
+  const dates = [...new Set([...Object.keys(c.closed), ...Object.keys(c.extra), ...Object.keys(c.blocked)])].filter(d => d >= t).sort();
+  $("#specialList").innerHTML = dates.length ? dates.map(d => {
+    const x = dayTimes(d);
+    const parts = [x.closed ? "🚫 公休" : "", x.extra.length ? `＋加開 ${x.extra.join("、")}` : "", x.blocked.length ? `封鎖 ${x.blocked.join("、")}` : ""].filter(Boolean);
+    return `<div class="sp-row" data-goday="${d}"><b>${dLabel(d)}</b><span>${parts.join("｜")}</span></div>`;
+  }).join("") : `<div class="empty">沒有特別設定，全部照每週固定時段</div>`;
+}
+
+function renderDayCtl() {
+  const box = $("#dayCtl"); if (!box) return;
+  const x = dayTimes(selDay), past = selDay < todayStr();
+  if (past) { box.innerHTML = ""; return; }
+  const c = cfg();
+  const openTxt = x.closed ? "" : (x.open.length ? `客人可以選：${x.open.join("、")}` : "這天沒有可預約的時段");
+  box.innerHTML = `
+    <div class="dc-top">
+      ${x.closed ? `<button class="btn small" type="button" id="dcOpen">↩ 取消公休</button>` : `<button class="btn small off" type="button" id="dcClose">🚫 設為公休</button>`}
+      <span class="muted small">${esc(openTxt)}</span>
+    </div>
+    ${x.closed ? `<div class="closed-note">這天是公休，客人看不到任何時段。</div>` : `
+    <div class="dc-box">
+      <h4>這天的固定時段（週${WD[parseYmd(selDay).getDay()]}）</h4>
+      <div class="tchips">${x.base.length ? x.base.map(t => `<span class="tchip ${x.blocked.includes(t) ? "block" : ""} ${x.taken.includes(t) ? "taken" : ""}">${t}${x.taken.includes(t) ? "・已約" : ""}</span>`).join("") : `<span class="muted small">沒有固定時段</span>`}</div>
+    </div>
+    <div class="dc-box extra">
+      <h4>＋ 本日加開時段（除了固定時段之外，額外多開放的時間）</h4>
+      <div class="tchips">${x.extra.map(t => `<span class="tchip extra">${t}<button type="button" data-exdel="${t}" aria-label="取消加開">✕</button></span>`).join("")}
+        ${timeSelect('id="dcExtra"', [...x.base, ...x.extra], "＋ 加開時段")}</div>
+    </div>
+    <div class="dc-box block">
+      <h4>🚫 本日封鎖時段（臨時抽掉單一時段，其他時段照常開放）</h4>
+      <div class="tchips">${x.blocked.map(t => `<span class="tchip block">${t}<button type="button" data-bldel="${t}" aria-label="取消封鎖">✕</button></span>`).join("")}
+        ${x.base.filter(t => !x.blocked.includes(t)).length ? `<select class="tadd" id="dcBlock"><option value="">＋ 封鎖時段</option>${x.base.filter(t => !x.blocked.includes(t)).map(t => `<option>${t}</option>`).join("")}</select>` : ""}</div>
+    </div>`}`;
+  const d = selDay;
+  const set = (k, v) => { const o = { ...c[k] }; o[d] = v; return { [k]: o }; };
+  $("#dcClose") && ($("#dcClose").onclick = () => saveCfg(set("closed", true), `${dLabel(d)} 設為公休`));
+  $("#dcOpen") && ($("#dcOpen").onclick = () => saveCfg(set("closed", false), `${dLabel(d)} 已取消公休`));
+  $("#dcExtra") && ($("#dcExtra").onchange = e => e.target.value && saveCfg(set("extra", sortT([...(c.extra[d] || []), e.target.value])), `${dLabel(d)} 加開 ${e.target.value}`));
+  $("#dcBlock") && ($("#dcBlock").onchange = e => e.target.value && saveCfg(set("blocked", sortT([...(c.blocked[d] || []), e.target.value])), `${dLabel(d)} 封鎖 ${e.target.value}`));
+  box.querySelectorAll("[data-exdel]").forEach(b => b.onclick = () => saveCfg(set("extra", (c.extra[d] || []).filter(t => t !== b.dataset.exdel)), "已取消加開"));
+  box.querySelectorAll("[data-bldel]").forEach(b => b.onclick = () => saveCfg(set("blocked", (c.blocked[d] || []).filter(t => t !== b.dataset.bldel)), "已取消封鎖"));
+}
+
+// ================= 網站預約（待確認） =================
+function renderPending() {
+  const list = DB.bookings.filter(b => b.status === "pending").sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
+  $("#pendingPanel").classList.toggle("hidden", !list.length);
+  $("#pendingCnt").textContent = list.length ? `${list.length} 筆` : "";
+  $("#pendingList").innerHTML = list.map(b => rowHtml(b, true)).join("");
+  const tb = document.querySelector('.tab[data-tab="day"]');
+  if (tb) { let c = tb.querySelector(".tab-cnt"); if (!c) { c = document.createElement("span"); c.className = "tab-cnt alert"; tb.append(c); }
+    c.textContent = list.length; c.classList.toggle("hidden", !list.length); }
+}
+
 // ================= 似顏繪排程 =================
 function dueInfo(a) {
   if (!a.due) return { text: "完成日未定", cls: "" };
@@ -551,6 +651,8 @@ document.addEventListener("click", e => {
   const pa = e.target.closest("[data-payall]"); if (pa) { e.stopPropagation(); return quickPayAll(pa.dataset.payall); }
   const bk = e.target.closest("[data-bk]"); if (bk) { const b = DB.bookings.find(x => x.id === bk.dataset.bk); if (b) { if (custDlg.open) custDlg.close(); openBooking(b); } return; }
   const cu = e.target.closest("[data-cust]"); if (cu) { const c = DB.customers.find(x => x.id === cu.dataset.cust); if (c) openCustomer(c); return; }
+  const gd = e.target.closest("[data-goday]");
+  if (gd) { selDay = gd.dataset.goday; const dd = parseYmd(selDay); view = new Date(dd.getFullYear(), dd.getMonth(), 1); switchTab("day"); $("#tab-day").scrollIntoView({ behavior: "smooth" }); return; }
   const dy = e.target.closest("[data-day]");
   if (dy) {
     const same = selDay === dy.dataset.day;
@@ -572,7 +674,7 @@ $("#goToday").onclick = () => { const d = new Date(); view = new Date(d.getFullY
 function switchTab(t) {
   tab = t;
   document.querySelectorAll(".tab").forEach(x => x.classList.toggle("on", x.dataset.tab === t));
-  ["day", "customers", "arts", "stats"].forEach(k => $("#tab-" + k).classList.toggle("hidden", k !== t));
+  ["day", "customers", "arts", "slots", "stats"].forEach(k => $("#tab-" + k).classList.toggle("hidden", k !== t));
   if (t === "stats") fillStatMonth();
   render();
 }
@@ -605,7 +707,7 @@ $("#importFile").onchange = async e => {
     d.arts ||= [];
     if (!confirm(`匯入 ${d.customers.length} 位客人、${d.bookings.length} 筆預約、${d.arts.length} 筆似顏繪？（相同的資料會被覆蓋）`)) return;
     if (mode === "cloud") { await api("POST", "import", d); await loadAll(); }
-    else { for (const k of ["bookings", "customers", "arts"]) d[k].forEach(x => { const i = DB[k].findIndex(y => y.id === x.id); i >= 0 ? DB[k][i] = x : DB[k].push(x); }); persistLocal(); render(); }
+    else { for (const k of ["bookings", "customers", "arts"]) (d[k] || []).forEach(x => { const i = DB[k].findIndex(y => y.id === x.id); i >= 0 ? DB[k][i] = x : DB[k].push(x); }); persistLocal(); render(); }
     toast("匯入完成");
   } catch (err) { toast("匯入失敗：" + err.message); }
 };

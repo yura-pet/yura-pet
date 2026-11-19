@@ -74,15 +74,22 @@
     <!-- 下方分頁 -->
     <nav class="tabs" id="tabs">
       <button class="tab on" data-tab="day" type="button">📅 預約</button>
-      <button class="tab" data-tab="customers" type="button">👤 客人資料</button>
+      <button class="tab" data-tab="customers" type="button">👤 客人</button>
       <button class="tab" data-tab="arts" type="button">🎨 似顏繪<span class="tab-cnt hidden" id="artCnt"></span></button>
-      <button class="tab" data-tab="stats" type="button">📊 結算統計</button>
+      <button class="tab" data-tab="slots" type="button">⏰ 時段</button>
+      <button class="tab" data-tab="stats" type="button">📊 統計</button>
     </nav>
 
     <section class="tab-page" id="tab-day">
+      <div class="panel pending-panel hidden" id="pendingPanel">
+        <div class="sec-head"><h3>🔔 待確認的網站預約</h3><span class="muted" id="pendingCnt"></span></div>
+        <p class="muted small">客人在網站送出的預約。點開確認時間、填金額後，把狀態改成「已預約」。</p>
+        <div id="pendingList"></div>
+      </div>
       <div class="panel">
         <div class="sec-head"><h3 id="dayTitle"></h3><button class="btn small primary" id="dayAdd" type="button">＋ 這天新增</button></div>
         <div id="dayList"></div>
+        <div id="dayCtl" class="day-ctl"></div>
       </div>
       <div class="panel">
         <div class="sec-head"><h3>接下來 14 天</h3></div>
@@ -112,6 +119,18 @@
         <p class="muted small">預約項目有「似顏繪」的預約，儲存時會自動加進來。預計完成日也會顯示在月曆上（🎨）。</p>
       </div>
       <div id="artBoard" class="art-board"></div>
+    </section>
+
+    <section class="tab-page hidden" id="tab-slots">
+      <div class="panel">
+        <div class="sec-head"><h3>每週固定開放時段</h3><span class="muted small" id="slotSaved"></span></div>
+        <p class="muted small">客人預約表單會照這裡顯示可以選的時間。沒有時段的那天，表單上視為公休。個別日期的公休、加開、封鎖時段，請在「📅 預約」分頁點月曆上的日期設定。已經有人預約的時段會自動關閉。</p>
+        <div id="weekly"></div>
+      </div>
+      <div class="panel">
+        <div class="sec-head"><h3>接下來的特別設定</h3></div>
+        <div id="specialList"></div>
+      </div>
     </section>
 
     <section class="tab-page hidden" id="tab-stats">
