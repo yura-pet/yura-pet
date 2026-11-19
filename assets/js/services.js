@@ -28,6 +28,12 @@ const ART_FIELDS = [
     showIf: s => isBundle(s.plan) }
 ];
 
+// 加時（10 或 20 分鐘，只能選一個）
+const EXT_ADDONS = [
+  { key: "ext10", group: "ext", label: "加時 10 分鐘", price: 500, hint: "想多聊一點，延長 10 分鐘。" },
+  { key: "ext20", group: "ext", label: "加時 20 分鐘", price: 900, hint: "想多聊一點，延長 20 分鐘。" }
+];
+
 export const SERVICES = {
   general: {
     key: "general",
@@ -45,6 +51,7 @@ export const SERVICES = {
     methods: ["視訊", "照片＋語音", "照片＋文字"],
     methodHint: "視訊與語音都會提供錄音紀錄；文字適合想慢慢閱讀、反覆查看的人。",
     addons: [
+      ...EXT_ADDONS,
       { key: "urgent", label: "緊急溝通", price: 1000, hint: "需要盡快安排時使用。" }
     ],
     mustKnow: [
@@ -81,6 +88,7 @@ export const SERVICES = {
     methods: ["照片＋視訊", "照片＋語音", "照片＋文字"],
     methodHint: "視訊與語音都會同步錄音並提供錄音紀錄。",
     addons: [
+      ...EXT_ADDONS,
       { key: "rebirth", label: "炁絡筆裁示／動物兵馬打聖杯確認轉世", price: 666,
         hint: "想確認目前的毛孩是不是前一隻回來了。需配合道長時間。" }
     ],

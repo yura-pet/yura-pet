@@ -224,7 +224,11 @@ function stepDetails() {
     saveDraft(); const y = scrollY; stepDetails(); scrollTo(0, y);
   });
   stage.querySelectorAll("input[name=method]").forEach(r => r.onchange = () => { state.method = r.value; saveDraft(); });
-  stage.querySelectorAll("input[name=addon]").forEach(r => r.onchange = () => { r.checked ? state.addons.add(r.value) : state.addons.delete(r.value); saveDraft(); drawFields(); drawSum(); });
+  stage.querySelectorAll("input[name=addon]").forEach(r => r.onchange = () => {
+    const a = s.addons.find(x => x.key === r.value);
+    if (r.checked && a && a.group) s.addons.filter(x => x.group === a.group && x.key !== a.key).forEach(x => {
+      state.addons.delete(x.key); const el = stage.querySelector(`input[name=addon][value="${x.key}"]`); if (el) el.checked = false; });
+    r.checked ? state.addons.add(r.value) : state.addons.delete(r.value); saveDraft(); drawFields(); drawSum(); });
   $("#c_email").oninput = e => { state.customer.email = e.target.value; e.target.classList.remove("invalid"); saveDraft(); };
   drawFields(); drawSum();
 
