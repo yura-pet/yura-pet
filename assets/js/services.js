@@ -28,10 +28,10 @@ const ART_FIELDS = [
     showIf: s => isBundle(s.plan) }
 ];
 
-// 加時（10 或 20 分鐘，只能選一個）
+// 加時（10 或 15 分鐘，只能選一個）
 const EXT_ADDONS = [
   { key: "ext10", group: "ext", label: "加時 10 分鐘", price: 500, hint: "想多聊一點，延長 10 分鐘。" },
-  { key: "ext20", group: "ext", label: "加時 20 分鐘", price: 900, hint: "想多聊一點，延長 20 分鐘。" }
+  { key: "ext15", group: "ext", label: "加時 15 分鐘", price: 750, hint: "想多聊一點，延長 15 分鐘。" }
 ];
 
 export const SERVICES = {
