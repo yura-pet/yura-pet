@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="zh-Hans">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+</head>
+<body>
+<title>Suchan 追追跑跑</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=LXGW+WenKai+TC:wght@400;700&display=swap">
+<style>
+/* Layout: one sketchbook page; a wide paper stage with a crayon ground line, controls underneath */
+:root{
+  --paper:#fbf8f2;
+  --paper-edge:#efe8dc;
+  --ink:#5b4a42;
+  --muted:#9a8a80;
+  --orange:#f08a4b;
+  --slate:#6f7f8e;
+  --hand:"LXGW WenKai TC","Kaiti TC","STKaiti","KaiTi",serif;
+  --ui:system-ui,-apple-system,"PingFang SC","Noto Sans SC",sans-serif;
+  color-scheme:light;
+}
+html,body{height:100%}
+body{background:var(--paper);color:var(--ink);font-family:var(--ui);
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  padding-block:20px 28px;box-sizing:border-box;overflow-x:hidden}
+.page{max-width:980px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
+header{display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:4px 16px}
+h1{font-family:var(--hand);font-weight:700;font-size:clamp(26px,5vw,38px);margin:0;letter-spacing:.02em;text-wrap:balance}
+h1 .o{color:var(--orange)} h1 .s{color:var(--slate)}
+header p{margin:0;font-family:var(--hand);color:var(--muted);font-size:16px}
+.stage{position:relative;width:100%;height:clamp(260px,52vw,460px);overflow:hidden;border-radius:6px;
+  background:
+    radial-gradient(ellipse at 30% 20%,rgba(255,255,255,.7),transparent 60%),
+    repeating-linear-gradient(0deg,transparent 0 31px,rgba(150,170,200,.10) 31px 32px),
+    var(--paper);
+  box-shadow:inset 0 0 0 1px var(--paper-edge),0 1px 0 var(--paper-edge);
+  touch-action:manipulation;user-select:none;-webkit-user-select:none}
+.ground{position:absolute;left:0;right:0;height:14px;pointer-events:none}
+.cat{position:absolute;left:0;top:0;transform-origin:50% 100%;will-change:transform;cursor:pointer;
+  -webkit-user-drag:none;pointer-events:auto}
+.shadow{position:absolute;left:0;top:0;height:12px;border-radius:50%;background:rgba(91,74,66,.13);pointer-events:none;will-change:transform}
+.dust{position:absolute;border-radius:50%;border:2px solid rgba(154,138,128,.55);pointer-events:none;animation:puff .7s ease-out forwards}
+@keyframes puff{from{opacity:.9;transform:scale(.4)}to{opacity:0;transform:scale(1.6) translateY(-8px)}}
+.speed{position:absolute;height:3px;border-radius:3px;background:currentColor;opacity:.35;pointer-events:none}
+.bubble{position:absolute;font-family:var(--hand);font-weight:700;font-size:clamp(16px,2.6vw,22px);
+  padding:4px 12px 6px;border-radius:16px;background:#fff;border:2px solid currentColor;white-space:nowrap;
+  pointer-events:none;transform:translate(-50%,-100%);animation:pop 1.3s ease-out forwards}
+.bubble::after{content:"";position:absolute;left:50%;bottom:-8px;width:10px;height:10px;background:#fff;
+  border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:translateX(-50%) rotate(45deg)}
+@keyframes pop{0%{opacity:0;margin-top:6px}12%{opacity:1;margin-top:-4px}20%{margin-top:0}80%{opacity:1}100%{opacity:0;margin-top:-10px}}
+.controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+button{font-family:var(--hand);font-size:17px;color:var(--ink);background:#fff;border:2px solid var(--ink);
+  border-radius:999px;padding:6px 16px;cursor:pointer;box-shadow:2px 2px 0 var(--paper-edge)}
+button:hover{background:#fff6ee}
+button:focus-visible{outline:3px solid var(--orange);outline-offset:2px}
+button[aria-pressed="true"]{background:var(--ink);color:#fff}
+.hint{font-family:var(--hand);color:var(--muted);font-size:15px;margin-left:auto}
+@media(max-width:560px){.hint{margin-left:0;width:100%}}
+</style>
+
+<div class="page">
+  <header>
+    <h1><span class="o">Suchan</span> 和 <span class="s">卷毛猫</span>，追追跑跑</h1>
+    <p>画：Yura · 原稿铅笔线条</p>
+  </header>
+
+  <div class="stage" id="stage" aria-label="橘猫 Suchan 和卷毛猫你追我跑的动画">
+    <svg class="ground" id="ground" preserveAspectRatio="none" viewBox="0 0 1000 14" aria-hidden="true">
+      <path d="M0 7 C60 4 120 9 200 6 S340 8 420 6 S560 4 640 7 S800 9 880 6 S960 5 1000 7" fill="none" stroke="#b9a99c" stroke-width="2.4" stroke-linecap="round"/>
+      <path d="M10 10 C90 8 170 11 260 9 S420 11 520 9 S700 8 780 10 S920 11 990 9" fill="none" stroke="#d6c9bd" stroke-width="1.4" stroke-linecap="round"/>
+    </svg>
+    <div class="shadow" id="sh-o"></div>
+    <div class="shadow" id="sh-f"></div>
+    <img class="cat" id="cat-f" src="images/chase/fluffy.png" alt="卷毛猫" draggable="false">
+    <img class="cat" id="cat-o" src="images/chase/orange.png" alt="橘猫 Suchan" draggable="false">
+  </div>
+
+  <div class="controls">
+    <button type="button" id="btn-play" aria-pressed="false">暂停</button>
+    <button type="button" id="btn-fast" aria-pressed="false">快跑！</button>
+    <span class="hint">点一下猫咪，它会跳起来喵一声</span>
+  </div>
+</div>
+
+<script>
+(() => {
+  const stage = document.getElementById('stage');
+  const ground = document.getElementById('ground');
+  const cats = {
+    o: { el: document.getElementById('cat-o'), sh: document.getElementById('sh-o'), ratio: 332/699, hScale: 1.0, color: '#f08a4b',
+         say: ['站住！', '别跑～', '抓到你了！', '嘿嘿嘿'], run: ['追不到～', '溜了溜了', '略略略'] },
+    f: { el: document.getElementById('cat-f'), sh: document.getElementById('sh-f'), ratio: 866/791, hScale: 0.92, color: '#6f7f8e',
+         say: ['等等我！', '冲呀！', '看我扑！', '喵呜——'], run: ['才不给你抓', '快逃！', '呀——'] },
+  };
+  for (const c of Object.values(cats)) { c.x = -999; c.phase = Math.random()*3; c.jump = 0; c.jumpV = 0; c.lastGround = true; }
+
+  const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let W = 0, H = 0, baseY = 0, catH = 0;
+  let dir = 1;                // 1 = running right, -1 = running left
+  let leader = 'o';           // who is being chased
+  let x = 0;                  // leader centre x
+  let t = 0, wait = 0, spoke = false;
+  let playing = !reduced, fast = false;
+
+  function layout() {
+    W = stage.clientWidth; H = stage.clientHeight;
+    baseY = H - Math.max(26, H*0.1);
+    ground.style.top = (baseY - 7) + 'px';
+    catH = H * 0.56;
+    for (const c of Object.values(cats)) {
+      c.h = catH * c.hScale; c.w = c.h * c.ratio;
+      c.el.style.height = c.h + 'px'; c.el.style.width = c.w + 'px';
+      c.sh.style.width = (c.w * (c === cats.o ? 0.95 : 0.7)) + 'px';
+    }
+  }
+  const other = k => (k === 'o' ? 'f' : 'o');
+
+  function startLap(newDir, newLeader) {
+    dir = newDir; leader = newLeader; spoke = false;
+    const L = cats[leader];
+    x = dir > 0 ? -L.w/2 - 10 : W + L.w/2 + 10;
+  }
+
+  function bubble(k, text) {
+    const c = cats[k];
+    const b = document.createElement('div');
+    b.className = 'bubble'; b.textContent = text; b.style.color = c.color;
+    const left = Math.min(W - 60, Math.max(60, c.x));
+    b.style.left = left + 'px';
+    b.style.top = (baseY - c.h - c.jump - 14) + 'px';
+    stage.appendChild(b);
+    setTimeout(() => b.remove(), 1350);
+  }
+  function dust(px) {
+    for (let i = 0; i < 3; i++) {
+      const d = document.createElement('div');
+      const s = 8 + Math.random()*10;
+      d.className = 'dust';
+      d.style.width = d.style.height = s + 'px';
+      d.style.left = (px - dir*(10 + i*12) - s/2) + 'px';
+      d.style.top = (baseY - s + 2 - Math.random()*6) + 'px';
+      d.style.animationDelay = (i*40) + 'ms';
+      stage.appendChild(d);
+      setTimeout(() => d.remove(), 900);
+    }
+  }
+  const pick = a => a[Math.floor(Math.random()*a.length)];
+
+  // speed lines that trail the runner
+  const lines = [0,1,2].map(i => { const s = document.createElement('div'); s.className = 'speed'; stage.appendChild(s); return s; });
+
+  function draw(dt) {
+    const L = cats[leader], F = cats[other(leader)];
+    const speed = W * (fast ? 0.42 : 0.24) + 60;     // px per second
+    if (wait > 0) {
+      wait -= dt;
+      if (wait <= 0) startLap(-dir, other(leader));
+    } else {
+      x += dir * speed * dt;
+    }
+    // follower keeps a gap that breathes: sometimes almost catches up
+    const gap = (L.w/2 + F.w/2) * (1.05 + 0.55*(0.5 + 0.5*Math.cos(t*1.7)));
+    L.x = x; F.x = x - dir*gap;
+
+    // lap finished when the follower has left the stage
+    const fEdge = dir > 0 ? F.x - F.w/2 > W + 20 : F.x + F.w/2 < -20;
+    if (wait <= 0 && fEdge) wait = 0.7;
+
+    // chaser shouts once mid-stage, the runner answers
+    if (!spoke && wait <= 0 && Math.abs(F.x - W*0.45) < W*0.08) {
+      spoke = true;
+      bubble(other(leader), pick(F.say));
+      setTimeout(() => bubble(leader, pick(L.run)), 650);
+    }
+
+    for (const [k, c] of Object.entries(cats)) {
+      const moving = wait <= 0;
+      const stride = fast ? 13 : 10;
+      if (moving) c.phase += dt * stride * (k === leader ? 1 : 1.08);
+      const hopH = c.h * (k === 'o' ? 0.16 : 0.12);
+      let hop = moving ? Math.abs(Math.sin(c.phase)) * hopH : 0;
+      // extra tap jump
+      if (c.jumpV || c.jump > 0) { c.jumpV -= 2600*dt; c.jump = Math.max(0, c.jump + c.jumpV*dt); if (c.jump === 0) c.jumpV = 0; }
+      const y = hop + c.jump;
+      const onGround = y < hopH*0.08;
+      if (onGround && !c.lastGround && moving && c.x > 0 && c.x < W && Math.random() < 0.6) dust(c.x);
+      c.lastGround = onGround;
+
+      const squash = onGround ? 0.93 : 1 + Math.min(0.05, y / c.h * 0.3);
+      const lean = moving ? dir * (7 + 5*Math.sin(c.phase*2)) : 0;
+      const flip = dir > 0 ? -1 : 1;     // drawings face forward; flip so fluffy's tail trails behind
+      c.el.style.transform =
+        `translate(${c.x - c.w/2}px, ${baseY - c.h - y + 4}px) rotate(${lean}deg) scale(${flip / Math.sqrt(squash)}, ${squash})`;
+      const shS = 1 - Math.min(0.55, y / (c.h*0.6));
+      c.sh.style.transform = `translate(${c.x - c.sh.offsetWidth/2}px, ${baseY - 6}px) scale(${shS})`;
+      c.sh.style.opacity = 0.4 + 0.6*shS;
+    }
+
+    // speed lines behind the leader
+    lines.forEach((s, i) => {
+      const len = (fast ? 46 : 30) + i*10 + 6*Math.sin(t*9 + i);
+      const lx = L.x - dir*(L.w/2 + 16 + i*6) - (dir > 0 ? len : 0);
+      s.style.width = len + 'px';
+      s.style.left = lx + 'px';
+      s.style.top = (baseY - L.h*(0.25 + i*0.17)) + 'px';
+      s.style.color = L.color;
+      s.style.opacity = wait > 0 ? 0 : 0.28;
+    });
+  }
+
+  let last = performance.now();
+  function frame(now) {
+    const dt = Math.min(0.05, (now - last) / 1000); last = now;
+    if (playing) { t += dt; draw(dt); }
+    requestAnimationFrame(frame);
+  }
+
+  for (const [k, c] of Object.entries(cats)) {
+    c.el.addEventListener('pointerdown', e => {
+      e.preventDefault();
+      if (c.jump === 0) c.jumpV = 900;
+      bubble(k, '喵！');
+    });
+  }
+  const bPlay = document.getElementById('btn-play'), bFast = document.getElementById('btn-fast');
+  function syncPlay() { bPlay.textContent = playing ? '暂停' : '继续跑'; bPlay.setAttribute('aria-pressed', String(!playing)); }
+  bPlay.addEventListener('click', () => { playing = !playing; syncPlay(); });
+  bFast.addEventListener('click', () => { fast = !fast; bFast.setAttribute('aria-pressed', String(fast)); });
+
+  layout();
+  addEventListener('resize', layout);
+  startLap(1, 'o');
+  x = W * 0.55;           // open mid-chase so the first frame already shows both cats
+  draw(0); syncPlay();
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
