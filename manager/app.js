@@ -7,7 +7,7 @@ const SOURCES  = ["官方LINE", "IG", "介紹", "網站預約"];
 const CHANNELS = ["官方LINE", "IG"];
 const METHODS  = ["文字", "語音", "視訊"];
 // 加時（價錢給你參考，總金額請自己填）
-const EXTS = { "": "不加時", "10": "加時 10 分鐘（NT$500）", "15": "加時 15 分鐘（NT$750）", "20": "加時 20 分鐘（舊）" };
+const EXTS = { "": "不加時", "10": "加時 10 分鐘（NT$500）", "15": "加時 15 分鐘（NT$700）", "20": "加時 20 分鐘（舊）" };
 const SERVICES = [
   "一般溝通｜單寵", "一般溝通｜多寵（2 隻）", "一般溝通｜三寵（3 隻）", "一般溝通｜緊急",
   "套組｜一般溝通單寵＋似顏繪", "套組｜一般溝通雙寵＋似顏繪", "套組｜一般溝通三寵＋似顏繪",
@@ -365,7 +365,7 @@ function updatePay() {
 }
 ["#f_total", "#f_deposit"].forEach(s => $(s).oninput = updatePay);
 $("#f_ext").onchange = () => { const v = $("#f_ext").value;
-  $("#extHint").textContent = v ? `記得把加時的 NT$${({ "10": 500, "15": 750, "20": 900 })[v]} 算進總金額` : ""; };
+  $("#extHint").textContent = v ? `記得把加時的 NT$${({ "10": 500, "15": 700, "20": 900 })[v]} 算進總金額` : ""; };
 ["#f_depositPaid", "#f_balancePaid"].forEach(s => $(s).onchange = updatePay);
 $("#payAll").onclick = () => {
   if (num($("#f_total").value) === null) {
