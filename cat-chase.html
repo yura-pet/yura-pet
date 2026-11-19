@@ -10,232 +10,621 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=LXGW+WenKai+TC:wght@400;700&display=swap">
 <style>
-/* Layout: one sketchbook page; a wide paper stage with a crayon ground line, controls underneath */
+/* Layout: a sketchbook page; one 16:9-ish crayon "screen" with the cartoon, a scrubber and scene chips under it */
 :root{
   --paper:#fbf8f2;
-  --paper-edge:#efe8dc;
+  --paper-edge:#ece4d7;
   --ink:#5b4a42;
-  --muted:#9a8a80;
-  --orange:#f08a4b;
-  --slate:#6f7f8e;
+  --muted:#958579;
+  --orange:#ee8848;
+  --slate:#6e7d8c;
   --hand:"LXGW WenKai TC","Kaiti TC","STKaiti","KaiTi",serif;
   --ui:system-ui,-apple-system,"PingFang SC","Noto Sans SC",sans-serif;
   color-scheme:light;
 }
-html,body{height:100%}
 body{background:var(--paper);color:var(--ink);font-family:var(--ui);
   padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
-  padding-block:20px 28px;box-sizing:border-box;overflow-x:hidden}
-.page{max-width:980px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
+  padding-block:20px 28px;overflow-x:hidden}
+.page{max-width:1000px;margin:0 auto;display:flex;flex-direction:column;gap:12px}
 header{display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:4px 16px}
-h1{font-family:var(--hand);font-weight:700;font-size:clamp(26px,5vw,38px);margin:0;letter-spacing:.02em;text-wrap:balance}
+h1{font-family:var(--hand);font-weight:700;font-size:clamp(24px,4.6vw,36px);margin:0;letter-spacing:.02em;text-wrap:balance}
 h1 .o{color:var(--orange)} h1 .s{color:var(--slate)}
-header p{margin:0;font-family:var(--hand);color:var(--muted);font-size:16px}
-.stage{position:relative;width:100%;height:clamp(260px,52vw,460px);overflow:hidden;border-radius:6px;
-  background:
-    radial-gradient(ellipse at 30% 20%,rgba(255,255,255,.7),transparent 60%),
-    repeating-linear-gradient(0deg,transparent 0 31px,rgba(150,170,200,.10) 31px 32px),
-    var(--paper);
-  box-shadow:inset 0 0 0 1px var(--paper-edge),0 1px 0 var(--paper-edge);
-  touch-action:manipulation;user-select:none;-webkit-user-select:none}
-.ground{position:absolute;left:0;right:0;height:14px;pointer-events:none}
-.cat{position:absolute;left:0;top:0;transform-origin:50% 100%;will-change:transform;cursor:pointer;
-  -webkit-user-drag:none;pointer-events:auto}
-.shadow{position:absolute;left:0;top:0;height:12px;border-radius:50%;background:rgba(91,74,66,.13);pointer-events:none;will-change:transform}
-.dust{position:absolute;border-radius:50%;border:2px solid rgba(154,138,128,.55);pointer-events:none;animation:puff .7s ease-out forwards}
-@keyframes puff{from{opacity:.9;transform:scale(.4)}to{opacity:0;transform:scale(1.6) translateY(-8px)}}
-.speed{position:absolute;height:3px;border-radius:3px;background:currentColor;opacity:.35;pointer-events:none}
-.bubble{position:absolute;font-family:var(--hand);font-weight:700;font-size:clamp(16px,2.6vw,22px);
-  padding:4px 12px 6px;border-radius:16px;background:#fff;border:2px solid currentColor;white-space:nowrap;
-  pointer-events:none;transform:translate(-50%,-100%);animation:pop 1.3s ease-out forwards}
-.bubble::after{content:"";position:absolute;left:50%;bottom:-8px;width:10px;height:10px;background:#fff;
-  border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:translateX(-50%) rotate(45deg)}
-@keyframes pop{0%{opacity:0;margin-top:6px}12%{opacity:1;margin-top:-4px}20%{margin-top:0}80%{opacity:1}100%{opacity:0;margin-top:-10px}}
-.controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
-button{font-family:var(--hand);font-size:17px;color:var(--ink);background:#fff;border:2px solid var(--ink);
-  border-radius:999px;padding:6px 16px;cursor:pointer;box-shadow:2px 2px 0 var(--paper-edge)}
-button:hover{background:#fff6ee}
-button:focus-visible{outline:3px solid var(--orange);outline-offset:2px}
+header p{margin:0;font-family:var(--hand);color:var(--muted);font-size:15px}
+.screen{position:relative;width:100%;max-width:100%;aspect-ratio:1000/560;border-radius:8px;overflow:hidden;
+  box-shadow:0 0 0 1px var(--paper-edge),0 6px 18px -10px rgba(91,74,66,.35);background:#fffdf8}
+canvas{display:block;width:100%;height:100%;touch-action:manipulation}
+.bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+button{font-family:var(--hand);font-size:16px;color:var(--ink);background:#fff;border:2px solid var(--ink);
+  border-radius:999px;padding:5px 14px;cursor:pointer;box-shadow:2px 2px 0 var(--paper-edge);line-height:1.3}
+button:hover{background:#fff4ea}
+button:focus-visible,input:focus-visible{outline:3px solid var(--orange);outline-offset:2px}
 button[aria-pressed="true"]{background:var(--ink);color:#fff}
-.hint{font-family:var(--hand);color:var(--muted);font-size:15px;margin-left:auto}
-@media(max-width:560px){.hint{margin-left:0;width:100%}}
+#seek{flex:1 1 200px;min-width:0;accent-color:var(--orange)}
+#clock{font-variant-numeric:tabular-nums;font-size:13px;color:var(--muted);min-width:76px;text-align:right}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chips button{font-size:14px;padding:3px 11px;border-width:1.5px;box-shadow:none;color:var(--muted);border-color:#d8ccbf}
+.chips button.on{color:#fff;background:var(--orange);border-color:var(--orange)}
+.note{font-family:var(--hand);color:var(--muted);font-size:15px;margin:0}
 </style>
 
 <div class="page">
   <header>
     <h1><span class="o">Suchan</span> 和 <span class="s">卷毛猫</span>，追追跑跑</h1>
-    <p>画：Yura · 原稿铅笔线条</p>
+    <p>角色原画：Yura</p>
   </header>
 
-  <div class="stage" id="stage" aria-label="橘猫 Suchan 和卷毛猫你追我跑的动画">
-    <svg class="ground" id="ground" preserveAspectRatio="none" viewBox="0 0 1000 14" aria-hidden="true">
-      <path d="M0 7 C60 4 120 9 200 6 S340 8 420 6 S560 4 640 7 S800 9 880 6 S960 5 1000 7" fill="none" stroke="#b9a99c" stroke-width="2.4" stroke-linecap="round"/>
-      <path d="M10 10 C90 8 170 11 260 9 S420 11 520 9 S700 8 780 10 S920 11 990 9" fill="none" stroke="#d6c9bd" stroke-width="1.4" stroke-linecap="round"/>
-    </svg>
-    <div class="shadow" id="sh-o"></div>
-    <div class="shadow" id="sh-f"></div>
-    <img class="cat" id="cat-f" src="images/chase/fluffy.png" alt="卷毛猫" draggable="false">
-    <img class="cat" id="cat-o" src="images/chase/orange.png" alt="橘猫 Suchan" draggable="false">
-  </div>
+  <div class="screen"><canvas id="cv" aria-label="橘猫 Suchan 和卷毛猫的卡通追逐动画：偷袭扑空、躲纸箱、撞柜子、打成一团，最后换卷毛猫追"></canvas></div>
 
-  <div class="controls">
-    <button type="button" id="btn-play" aria-pressed="false">暂停</button>
-    <button type="button" id="btn-fast" aria-pressed="false">快跑！</button>
-    <span class="hint">点一下猫咪，它会跳起来喵一声</span>
+  <div class="bar">
+    <button type="button" id="b-play" aria-pressed="false">暂停</button>
+    <button type="button" id="b-again">从头看</button>
+    <button type="button" id="b-slow" aria-pressed="false">慢动作</button>
+    <button type="button" id="b-snd" aria-pressed="false">开声音</button>
+    <input type="range" id="seek" min="0" max="37.6" step="0.01" value="0" aria-label="播放进度">
+    <span id="clock">0.0 / 37.6 秒</span>
   </div>
+  <div class="chips" id="chips"></div>
+  <p class="note">点下面的分镜可以直接跳过去看。</p>
 </div>
 
 <script>
 (() => {
-  const stage = document.getElementById('stage');
-  const ground = document.getElementById('ground');
-  const cats = {
-    o: { el: document.getElementById('cat-o'), sh: document.getElementById('sh-o'), ratio: 332/699, hScale: 1.0, color: '#f08a4b',
-         say: ['站住！', '别跑～', '抓到你了！', '嘿嘿嘿'], run: ['追不到～', '溜了溜了', '略略略'] },
-    f: { el: document.getElementById('cat-f'), sh: document.getElementById('sh-f'), ratio: 866/791, hScale: 0.92, color: '#6f7f8e',
-         say: ['等等我！', '冲呀！', '看我扑！', '喵呜——'], run: ['才不给你抓', '快逃！', '呀——'] },
-  };
-  for (const c of Object.values(cats)) { c.x = -999; c.phase = Math.random()*3; c.jump = 0; c.jumpV = 0; c.lastGround = true; }
+'use strict';
+// ---------- world ----------
+const VW = 1000, VH = 560, G = 470, TOTAL = 37.6;
+const cv = document.getElementById('cv'), ctx = cv.getContext('2d');
+const FONT = '"LXGW WenKai TC","Kaiti TC","STKaiti","KaiTi",serif';
+const INK = '#5b4a42', ORANGE = '#ee8848', SLATE = '#6e7d8c';
 
-  const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
-  let W = 0, H = 0, baseY = 0, catH = 0;
-  let dir = 1;                // 1 = running right, -1 = running left
-  let leader = 'o';           // who is being chased
-  let x = 0;                  // leader centre x
-  let t = 0, wait = 0, spoke = false;
-  let playing = !reduced, fast = false;
+const imgO = new Image(); imgO.src = 'images/chase/orange.png';
+const imgF = new Image(); imgF.src = 'images/chase/fluffy.png';
 
-  function layout() {
-    W = stage.clientWidth; H = stage.clientHeight;
-    baseY = H - Math.max(26, H*0.1);
-    ground.style.top = (baseY - 7) + 'px';
-    catH = H * 0.56;
-    for (const c of Object.values(cats)) {
-      c.h = catH * c.hScale; c.w = c.h * c.ratio;
-      c.el.style.height = c.h + 'px'; c.el.style.width = c.w + 'px';
-      c.sh.style.width = (c.w * (c === cats.o ? 0.95 : 0.7)) + 'px';
+// part rectangles are in source-image pixels
+const DEF = {
+  o: { img: imgO, W: 332, H: 699, ax: 166, ay: 699, wh: 250, color: ORANGE,
+       head: { r: [0, 0, 332, 318], p: [166, 300] }, legL: [0, 600, 166, 99], legR: [166, 600, 166, 99],
+       legs: [0, 600, 332, 99], top: [166, 20], face: [166, 190], tail: null },
+  f: { img: imgF, W: 866, H: 791, ax: 250, ay: 791, wh: 225, color: SLATE,
+       head: { r: [0, 0, 392, 345], p: [200, 330] }, legL: [0, 690, 260, 101], legR: [260, 690, 260, 101],
+       legs: [0, 690, 520, 101], top: [200, 20], face: [200, 190], tail: { r: [520, 600, 346, 191], p: [520, 700] } },
+};
+for (const d of Object.values(DEF)) d.k = d.wh / d.H;
+
+// ---------- math ----------
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const lerp = (a, b, p) => a + (b - a) * p;
+const P = (t, a, b) => clamp((t - a) / (b - a), 0, 1);
+const within = (t, a, b) => t >= a && t < b;
+const rad = d => d * Math.PI / 180;
+const arc = p => 4 * p * (1 - p);
+const E = {
+  io: p => p < .5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2,
+  o: p => 1 - Math.pow(1 - p, 3),
+  i: p => p * p * p,
+  back: p => { const c = 1.9; return 1 + (c + 1) * Math.pow(p - 1, 3) + c * Math.pow(p - 1, 2); },
+};
+function rng(seed) { let a = seed >>> 0; return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+const hash = n => rng(n * 9973 + 17)();
+
+// ---------- crayon drawing ----------
+function crayon(c, pts, o, R) {
+  const { color = INK, w = 3, closed = false, passes = 2, jit = 1.4, alpha = .85 } = o;
+  c.save(); c.strokeStyle = color; c.lineCap = 'round'; c.lineJoin = 'round';
+  for (let k = 0; k < passes; k++) {
+    c.globalAlpha = alpha * (k ? .55 : 1); c.lineWidth = w * (k ? .6 : 1);
+    const q = pts.map(([x, y]) => [x + (R() - .5) * jit * 2, y + (R() - .5) * jit * 2]);
+    if (closed) q.push(q[0], q[1]);
+    c.beginPath(); c.moveTo(q[0][0], q[0][1]);
+    for (let i = 1; i < q.length - 1; i++) { const mx = (q[i][0] + q[i + 1][0]) / 2, my = (q[i][1] + q[i + 1][1]) / 2; c.quadraticCurveTo(q[i][0], q[i][1], mx, my); }
+    if (!closed) c.lineTo(q[q.length - 1][0], q[q.length - 1][1]);
+    c.stroke();
+  }
+  c.restore();
+}
+const ell = (cx, cy, rx, ry, n = 22, a0 = 0) => Array.from({ length: n }, (_, i) => { const a = a0 + i / n * Math.PI * 2; return [cx + Math.cos(a) * rx, cy + Math.sin(a) * ry]; });
+const rectPts = (x, y, w, h) => { const p = []; const s = 6; for (let i = 0; i < s; i++) p.push([x + w * i / s, y]); for (let i = 0; i < s; i++) p.push([x + w, y + h * i / s]); for (let i = 0; i < s; i++) p.push([x + w - w * i / s, y + h]); for (let i = 0; i < s; i++) p.push([x, y + h - h * i / s]); return p; };
+const starPts = (cx, cy, r1, r2, n, R, a0 = -Math.PI / 2) => Array.from({ length: n * 2 }, (_, i) => { const a = a0 + i / (n * 2) * Math.PI * 2; const r = (i % 2 ? r2 : r1) * (R ? .85 + R() * .3 : 1); return [cx + Math.cos(a) * r, cy + Math.sin(a) * r]; });
+function hatch(c, x, y, w, h, color, R, gap = 9, alpha = .35) {
+  c.save(); c.beginPath(); c.rect(x, y, w, h); c.clip();
+  c.strokeStyle = color; c.globalAlpha = alpha; c.lineWidth = 2; c.lineCap = 'round';
+  for (let i = -h; i < w; i += gap) { c.beginPath(); c.moveTo(x + i + R() * 3, y + h + 2); c.lineTo(x + i + h + R() * 3, y - 2); c.stroke(); }
+  c.restore();
+}
+function fillPts(c, pts, color, alpha = 1) { c.save(); c.globalAlpha = alpha; c.fillStyle = color; c.beginPath(); pts.forEach(([x, y], i) => i ? c.lineTo(x, y) : c.moveTo(x, y)); c.closePath(); c.fill(); c.restore(); }
+
+// ---------- characters ----------
+function base() { return { x: -999, y: 0, rot: 0, sx: 1, sy: 1, flip: 1, hr: 0, hx: 0, hy: 0, tail: 0, legL: 0, legR: 0, whirl: 0, wp: 0, alpha: 1, vis: true, top: 0, angry: 0, sweat: 0, stars: 0, skid: 0, rev: 0, clipG: 0, dazed: 0 }; }
+function idle(s, t, ph = 0) { s.hr += Math.sin(t * 1.6 + ph) * 3; s.sy *= 1 + Math.sin(t * 2.3 + ph) * .012; s.tail += Math.sin(t * 2.1 + ph) * 12; }
+function runPose(s, t, dir) {
+  s.whirl = 1; s.wp = t * 30; s.y += Math.abs(Math.sin(t * 17)) * 7; s.rot += dir * 11;
+  s.flip = dir > 0 ? -1 : 1; s.tail += Math.sin(t * 22) * 14; s.sx *= 1.05; s.sy *= .97;
+}
+function runSeg(s, t, t0, t1, x0, x1, hopX, ease) {
+  if (t < t0 || t > t1) { s.vis = false; return false; }
+  const p = P(t, t0, t1); s.x = lerp(x0, x1, ease ? ease(p) : p);
+  const dir = Math.sign(x1 - x0); runPose(s, t, dir);
+  if (hopX != null && Math.abs(s.x - hopX) < 125) { const q = (s.x - hopX + 125) / 250; s.y += arc(q) * 135; s.rot += dir * (q - .5) * 30; s.sy *= 1.06; }
+  return true;
+}
+function toWorld(d, s, px, py) {
+  const X = (px - d.ax) * d.k * s.flip * s.sx, Y = (py - d.ay) * d.k * s.sy, r = rad(s.rot);
+  return [s.x + X * Math.cos(r) - Y * Math.sin(r), G - s.y + X * Math.sin(r) + Y * Math.cos(r)];
+}
+function clipRect(c, r) { c.beginPath(); c.rect(r[0], r[1], r[2], r[3]); c.clip(); }
+
+function drawPart(c, d, part, R) {
+  // draw one rectangle of the source image in image space
+  const r = part.r || part;
+  c.save(); clipRect(c, r); c.drawImage(d.img, 0, 0); c.restore();
+}
+function drawCat(c, d, s, R) {
+  if (!s.vis || !d.img.complete || !d.img.naturalWidth) return;
+  c.save();
+  if (s.clipG) { c.beginPath(); c.rect(-50, -200, VW + 100, G + 200); c.clip(); }
+  c.globalAlpha = s.alpha;
+  c.translate(s.x, G - s.y); c.rotate(rad(s.rot + (R() - .5) * .5));
+  c.scale(s.flip * s.sx * d.k, s.sy * d.k); c.translate(-d.ax, -d.ay);
+  if (d.tail) {
+    const p = d.tail.p; c.save(); c.translate(p[0], p[1]); c.rotate(rad(s.tail)); c.translate(-p[0], -p[1]); drawPart(c, d, d.tail); c.restore();
+  }
+  // body = whole drawing minus head, legs and tail rectangles
+  c.save(); c.beginPath(); c.rect(0, 0, d.W, d.H);
+  for (const r of [d.head.r, d.legs, d.tail && d.tail.r].filter(Boolean)) c.rect(r[0], r[1], r[2], r[3]);
+  c.clip('evenodd'); c.drawImage(d.img, 0, 0); c.restore();
+  if (s.whirl) drawWhirl(c, d, s, R);
+  else {
+    c.save(); c.translate(0, -s.legL); drawPart(c, d, d.legL); c.restore();
+    c.save(); c.translate(0, -s.legR); drawPart(c, d, d.legR); c.restore();
+  }
+  const hp = d.head.p; c.save(); c.translate(hp[0] + s.hx, hp[1] + s.hy); c.rotate(rad(s.hr)); c.translate(-hp[0], -hp[1]); drawPart(c, d, d.head); c.restore();
+  c.restore();
+}
+function drawWhirl(c, d, s, R) {
+  const r = d.legs, cx = d.ax, cy = r[1] + r[3] * .45, rx = (d === DEF.f ? 230 : 150), ry = r[3] * .6, w = 3 / d.k;
+  for (let i = 0; i < 4; i++) {
+    const a = s.wp + i * 1.57;
+    crayon(c, ell(cx + Math.cos(a) * rx * .25, cy + Math.sin(a) * ry * .2, rx * (.55 + .18 * Math.sin(a)), ry, 18, a), { color: d.color, w, jit: 4 / d.k * .3, alpha: .6 }, R);
+  }
+  for (let i = 0; i < 3; i++) crayon(c, [[cx - rx * .9, cy + ry * (.6 - i * .5)], [cx + rx * .9, cy + ry * (.6 - i * .5) + 4]], { color: d.color, w: w * .7, alpha: .35 }, R);
+}
+
+// ---------- background (cached, boiling at 4 fps) ----------
+let scale = 1, dpr = 1, bgCache = [];
+function buildBg() {
+  bgCache = [0, 1, 2].map(v => {
+    const b = document.createElement('canvas'); b.width = cv.width; b.height = cv.height;
+    const c = b.getContext('2d'); c.scale(scale * dpr, scale * dpr); const R = rng(100 + v);
+    c.fillStyle = '#fffdf8'; c.fillRect(0, 0, VW, VH);
+    // wallpaper dots
+    c.fillStyle = 'rgba(214,160,170,.18)';
+    for (let y = 30; y < G - 30; y += 46) for (let x = (y / 46 % 2) * 23 + 12; x < VW; x += 46) { c.beginPath(); c.arc(x + R() * 2, y + R() * 2, 2.2, 0, 7); c.fill(); }
+    // floor
+    c.fillStyle = '#f6eee2'; c.fillRect(0, G, VW, VH - G);
+    hatch(c, 0, G + 4, VW, VH - G, '#e2cfb6', R, 16, .5);
+    crayon(c, [[0, G - 22], [330, G - 21], [660, G - 23], [1000, G - 22]], { color: '#d9c3ad', w: 2.5 }, R);
+    crayon(c, [[0, G], [250, G + 1], [500, G - 1], [750, G + 1], [1000, G]], { color: '#b9a18c', w: 3.2 }, R);
+    for (let x = 90; x < VW; x += 160) crayon(c, [[x, G + 8], [x - 30, VH]], { color: '#d9c3ad', w: 2 }, R);
+    // window
+    fillPts(c, rectPts(600, 70, 170, 180), '#e3f0f8');
+    hatch(c, 604, 74, 162, 172, '#9cc3dd', R, 12, .35);
+    crayon(c, rectPts(600, 70, 170, 180), { color: '#a88f7c', w: 4, closed: true }, R);
+    crayon(c, [[685, 70], [685, 250]], { color: '#a88f7c', w: 3 }, R);
+    crayon(c, [[600, 160], [770, 160]], { color: '#a88f7c', w: 3 }, R);
+    crayon(c, ell(735, 110, 16, 16), { color: '#f2c14e', w: 3, closed: true }, R);
+    for (const [x0, dir] of [[588, 1], [782, -1]]) { fillPts(c, [[x0, 60], [x0 + dir * 38, 60], [x0 + dir * 24, 150], [x0 + dir * 34, 262], [x0, 262]], '#f5c9cf', .7); crayon(c, [[x0 + dir * 38, 60], [x0 + dir * 24, 150], [x0 + dir * 34, 262]], { color: '#e59aa6', w: 2.5 }, R); }
+    crayon(c, [[570, 58], [800, 58]], { color: '#a88f7c', w: 4 }, R);
+    // wall clock
+    fillPts(c, ell(400, 120, 34, 34), '#fff');
+    crayon(c, ell(400, 120, 34, 34), { color: '#a88f7c', w: 3.5, closed: true }, R);
+    crayon(c, [[400, 120], [400, 98]], { color: INK, w: 3 }, R); crayon(c, [[400, 120], [416, 128]], { color: INK, w: 3 }, R);
+    // rug
+    fillPts(c, ell(560, G + 46, 230, 26), '#f3d8c4', .6);
+    crayon(c, ell(560, G + 46, 230, 26, 30), { color: '#e2b89a', w: 2.5, closed: true }, R);
+    return b;
+  });
+}
+
+// cabinet in the foreground, left edge
+function drawCabinet(c, shake, R) {
+  c.save(); c.translate(60, G); c.rotate(rad(shake)); c.translate(-60, -G);
+  fillPts(c, rectPts(-10, G - 200, 130, 200), '#e8cfae');
+  hatch(c, -10, G - 200, 130, 200, '#c79b6e', R, 10, .35);
+  crayon(c, rectPts(-10, G - 200, 130, 200), { color: '#9c7452', w: 4, closed: true }, R);
+  crayon(c, [[-10, G - 132], [120, G - 132]], { color: '#9c7452', w: 3 }, R);
+  crayon(c, [[-10, G - 66], [120, G - 66]], { color: '#9c7452', w: 3 }, R);
+  for (const y of [G - 166, G - 99, G - 33]) crayon(c, ell(55, y, 7, 5), { color: '#9c7452', w: 3, closed: true }, R);
+  c.restore();
+}
+function drawFrame(c, x, y, rot, R) {
+  c.save(); c.translate(x, y); c.rotate(rad(rot));
+  fillPts(c, rectPts(-36, -30, 72, 60), '#fff8ec');
+  crayon(c, ell(0, 2, 18, 9), { color: '#7fb0d0', w: 2.5, closed: true }, R);
+  crayon(c, [[16, 2], [28, -6], [28, 10], [16, 2]], { color: '#7fb0d0', w: 2.5 }, R);
+  crayon(c, rectPts(-36, -30, 72, 60), { color: '#b27c55', w: 5, closed: true }, R);
+  c.restore();
+}
+function drawBox(c, b, R, t) {
+  if (!b.vis) return;
+  c.save(); c.translate(b.x, G - b.y); c.rotate(rad(b.rot)); c.scale(1 / b.sy * .98 + .02, b.sy);
+  const w = 124, h = 92;
+  if (b.legs > 0) for (let i = 0; i < 4; i++) {
+    const lx = -44 + i * 29, lift = b.step && (i % 2 === Math.floor(t * 6) % 2) ? 7 : 0;
+    fillPts(c, ell(lx, -4 - lift, 9, 7), '#c9cfd6', b.legs); crayon(c, ell(lx, -4 - lift, 9, 7, 12), { color: SLATE, w: 2.5, alpha: .8 * b.legs, closed: true }, R);
+  }
+  fillPts(c, rectPts(-w / 2, -h - 6, w, h), '#e2c093');
+  hatch(c, -w / 2, -h - 6, w, h, '#b88b57', R, 11, .4);
+  crayon(c, rectPts(-w / 2, -h - 6, w, h), { color: '#9a7046', w: 4, closed: true }, R);
+  const fl = b.flap;
+  crayon(c, [[-w / 2, -h - 6], [-w / 2 - 22, -h - 22 - fl * 14]], { color: '#9a7046', w: 4 }, R);
+  crayon(c, [[w / 2, -h - 6], [w / 2 + 22, -h - 22 - fl * 14]], { color: '#9a7046', w: 4 }, R);
+  crayon(c, [[-14, -h - 6], [-14, -h + 30], [14, -h + 30], [14, -h - 6]], { color: '#c9a77a', w: 3 }, R);
+  c.font = `700 24px ${FONT}`; c.fillStyle = '#9a7046'; c.textAlign = 'center'; c.globalAlpha = .7; c.fillText('鱼干', 0, -30);
+  c.restore();
+}
+
+// ---------- effects ----------
+function bubble(c, x, y, text, p, color, size, R) {
+  const s = size * fontBoost; c.save();
+  const pop = p < .15 ? E.back(p / .15) : 1, fade = p > .85 ? 1 - (p - .85) / .15 : 1;
+  c.globalAlpha = fade; c.translate(clamp(x, 70, VW - 70), Math.max(y, s + 24)); c.scale(pop, pop);
+  c.font = `700 ${s}px ${FONT}`; const tw = c.measureText(text).width, w = tw + s * .9, h = s * 1.45;
+  const pts = rectPts(-w / 2, -h, w, h).map(([px, py]) => [px * .98, py]);
+  fillPts(c, pts, '#fff'); fillPts(c, [[-10, -2], [10, -2], [0, 16]], '#fff');
+  crayon(c, pts, { color, w: 3, closed: true }, R);
+  crayon(c, [[-10, 0], [0, 16], [10, 0]], { color, w: 3 }, R);
+  c.fillStyle = INK; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(text, 0, -h / 2 + 1);
+  c.restore();
+}
+function bigText(c, x, y, text, p, color, size, rot, R) {
+  c.save(); const pop = p < .2 ? E.back(p / .2) : 1, fade = p > .75 ? 1 - (p - .75) / .25 : 1;
+  c.globalAlpha = fade; c.translate(x + (R() - .5) * 3, y + (R() - .5) * 3); c.rotate(rad(rot)); c.scale(pop, pop);
+  c.font = `700 ${size}px ${FONT}`; c.textAlign = 'center'; c.textBaseline = 'middle';
+  c.lineJoin = 'round'; c.lineWidth = 10; c.strokeStyle = '#fff'; c.strokeText(text, 0, 0);
+  c.fillStyle = color; c.fillText(text, 0, 0); c.restore();
+}
+function burst(c, x, y, r, p, R) {
+  const sc = E.back(clamp(p / .3, 0, 1)), fade = 1 - clamp((p - .6) / .4, 0, 1);
+  c.save(); c.globalAlpha = fade; const pts = starPts(x, y, r * sc, r * .5 * sc, 11, R);
+  fillPts(c, pts, '#ffe27a'); crayon(c, pts, { color: '#f0a24a', w: 4, closed: true }, R); c.restore();
+}
+function anger(c, x, y, R, sz = 1) {
+  c.save(); c.translate(x, y); c.scale(sz, sz);
+  for (let i = 0; i < 4; i++) { const a = i * Math.PI / 2 + Math.PI / 4; const cx = Math.cos(a) * 9, cy = Math.sin(a) * 9;
+    crayon(c, [[cx + Math.cos(a + 1.2) * 9, cy + Math.sin(a + 1.2) * 9], [cx * .3, cy * .3], [cx + Math.cos(a - 1.2) * 9, cy + Math.sin(a - 1.2) * 9]], { color: '#e04b4b', w: 4 }, R); }
+  c.restore();
+}
+function sweat(c, x, y, R) { const pts = [[0, -14], [7, -2], [8, 6], [0, 11], [-8, 6], [-7, -2]].map(([a, b]) => [x + a, y + b]); fillPts(c, pts, '#cfe8f7'); crayon(c, pts, { color: '#6aa6cf', w: 2.5, closed: true }, R); }
+function circlingStars(c, x, y, t, R) {
+  for (let i = 0; i < 3; i++) { const a = t * 4 + i * 2.09; const sx = x + Math.cos(a) * 46, sy = y + Math.sin(a) * 13;
+    const pts = starPts(sx, sy, 11, 5, 5, null, a); fillPts(c, pts, '#ffe27a'); crayon(c, pts, { color: '#e0a03a', w: 2.5, closed: true }, R); }
+}
+
+// ---------- particles ----------
+let parts = [];
+function emit(x, y, n, o = {}) { for (let i = 0; i < n; i++) parts.push({ x: x + (Math.random() - .5) * (o.spread || 20), y: y - Math.random() * 6, vx: (o.vx || 0) + (Math.random() - .5) * (o.vr || 60), vy: (o.vy || -20) - Math.random() * 30, r: (o.r || 8) + Math.random() * 8, life: 0, max: (o.life || .6) + Math.random() * .3, color: o.color || '#b8a596', grow: o.grow || 1.4 }); }
+function stepParts(dt) { for (const p of parts) { p.life += dt; p.x += p.vx * dt; p.y += p.vy * dt; p.vx *= .96; } parts = parts.filter(p => p.life < p.max); }
+function drawParts(c, R) { for (const p of parts) { const k = p.life / p.max; crayon(c, ell(p.x, p.y, p.r * (1 + k * p.grow), p.r * (1 + k * p.grow) * .8, 10), { color: p.color, w: 2.4, closed: true, alpha: .8 * (1 - k), passes: 1 }, R); } }
+
+// ---------- the script ----------
+const SCENES = [[0, '偷偷靠近'], [4.5, '扑空'], [8.1, '追！'], [12.4, '躲纸箱'], [19.6, '撞柜子'], [26, '打成一团'], [30.3, '换你追']];
+function scene(t) {
+  const o = base(), f = base(), S = { o, f, say: [], text: [], bursts: [], ghosts: [], stars: [], box: { x: 870, y: 0, rot: 0, sy: 1, vis: true, legs: 0, step: 0, flap: 0, tail: 0 }, boxFront: false, shelf: 0, frame: { x: 140, y: 110, rot: 0 }, cloud: null, iris: 1 };
+  const say = (who, text, a, b, size = 26, dx = 0) => { if (within(t, a, b)) S.say.push({ who, text, p: P(t, a, b), size, dx }); };
+  const txt = (x, y, text, a, b, color, size = 56, rot = -8) => { if (within(t, a, b)) S.text.push({ x, y, text, p: P(t, a, b), color, size, rot }); };
+  const bst = (x, y, r, a, b) => { if (within(t, a, b)) S.bursts.push({ x, y, r, p: P(t, a, b) }); };
+
+  // box timeline (shared)
+  if (t >= 16 && t < 18.2) { S.box.x = 870 + Math.min(4, Math.floor((t - 16) / .35) + E.io(((t - 16) / .35) % 1)) * 15; }
+  if (t >= 17.4) S.box.x = 930;
+  if (t < 16) S.box.x = 870;
+
+  if (t < 4.8) { // ---- 1. sneak
+    f.x = 680; idle(f, t);
+    const n = (t - .4) / .6, nI = Math.floor(n), m = clamp((n - nI) / .62, 0, 1);
+    if (n < 0) o.x = -90; else if (nI >= 6) o.x = 470; else { o.x = -90 + 93.33 * (nI + E.io(m)); o.y = arc(m) * 16; o[nI % 2 ? 'legL' : 'legR'] = arc(m) * 34; }
+    o.flip = -1; o.rot = -5; o.sy = 1.05; o.sx = .97; o.hr = -8 + Math.sin(t * 3) * 3; o.hy = -6;
+    say('f', '♪～', .8, 2.6); say('o', '嘿嘿…', 1.8, 3.9);
+    if (t > 4.2) { const p = P(t, 4.2, 4.55); o.sy = 1.05 - .25 * E.o(p); o.sx = .97 + .15 * E.o(p); o.rot = -5 - 6 * p + Math.sin(t * 45) * 2.5 * p; o.hy = -6 + 14 * p; }
+    if (t > 4.55) { f.hr = -18; f.sy *= 1.04; f.y = 8 * arc(P(t, 4.55, 4.7)); }
+    say('f', '！', 4.55, 5.4, 44);
+  } else if (t < 8.4) { // ---- 2. pounce & miss
+    // orange
+    if (t < 5.25) { const p = P(t, 4.8, 5.25); o.x = lerp(470, 680, p); o.y = arc(p) * 130; o.rot = lerp(-15, 25, p); o.sx = 1.15; o.sy = .88; o.legL = o.legR = 20; o.flip = -1; }
+    else if (t < 5.9) { o.x = 680; o.sy = .5 + Math.sin((t - 5.25) * 30) * .03; o.sx = 1.45; o.flip = -1; o.hy = 20; }
+    else if (t < 7.4) {
+      o.x = 680; o.flip = -1; const p = P(t, 5.9, 6.3); o.sy = lerp(.5, 1, E.back(p)); o.sx = lerp(1.45, 1, E.back(p));
+      if (t > 6.0 && t < 6.6) o.hr = Math.sin((t - 6) * 35) * 14 * (1 - P(t, 6, 6.6));
+      if (t > 6.6) { o.angry = 1; o.hr = 6; o.sx *= 1 + Math.sin(t * 50) * .015; o.rot = 4; }
+      say('o', '可恶！', 6.6, 7.5);
+    } else if (t < 8.1) { o.x = 680 - 12 * P(t, 7.4, 8.1); o.flip = -1; o.whirl = 1; o.wp = t * 40; o.rot = 15; o.y = Math.abs(Math.sin(t * 40)) * 3; o.rev = -1; o.angry = 1; o.hr = 6; }
+    else { const p = P(t, 8.1, 8.35); o.x = lerp(668, 1250, E.i(p)); o.flip = -1; o.whirl = 1; o.wp = t * 40; o.rot = 15; o.sx = 1.35; o.sy = .85; }
+    if (within(t, 8.1, 8.7)) S.ghosts.push({ who: 'o', s: Object.assign(base(), { x: 668, flip: -1, rot: 15, alpha: .35 * (1 - P(t, 8.1, 8.7)), whirl: 1, wp: 8.1 * 40 }) });
+    txt(690, 380, '啪！', 5.25, 5.95, '#e2763a');
+    // fluffy
+    if (t < 4.85) { f.x = 680; f.hr = -18; }
+    else if (t < 5.05) { const p = P(t, 4.85, 5.05); f.x = 680; f.y = E.o(p) * 235; f.sy = 1 + .35 * Math.sin(Math.PI * p); f.sx = 1 - .15 * Math.sin(Math.PI * p); f.hr = -10; }
+    else if (t < 5.5) { f.x = 680; f.y = 235 + Math.sin(t * 30) * 3; f.whirl = 1; f.wp = t * 34; f.hr = 12; f.sweat = 1; f.tail = -25; }
+    else if (t < 5.8) { const p = P(t, 5.5, 5.78); f.x = lerp(680, 1250, E.i(p)); f.y = lerp(235, 190, p); f.whirl = 1; f.wp = t * 40; f.flip = -1; f.sx = 1.45; f.sy = .8; f.rot = 14; }
+    else f.vis = false;
+    say('f', '！', 4.55, 5.4, 44);
+    if (within(t, 5.5, 6.2)) S.ghosts.push({ who: 'f', s: Object.assign(base(), { x: 680, y: 235, alpha: .38 * (1 - P(t, 5.5, 6.2)), whirl: 1, wp: 5.5 * 34, hr: 12 }) });
+  } else if (t < 12.4) { // ---- 3. chase lap (jump over the box)
+    runSeg(f, t, 8.5, 11.3, -170, 1240, 870);
+    runSeg(o, t, 8.95, 11.55, -170, 1240, 870);
+    o.angry = 1;
+    if (within(t, 9.7, 10.4)) { f.hr = 20; f.sweat = 1; }
+    say('f', '哇啊——', 9.6, 10.5); say('o', '别跑！', 10.0, 10.9);
+  } else if (t < 19.6) { // ---- 4. the box
+    // fluffy
+    if (t < 13.15) runSeg(f, t, 12.4, 13.15, -170, 780);
+    else if (t < 13.62) { const p = P(t, 13.15, 13.62); f.x = lerp(780, 870, p); f.y = p < .5 ? E.o(p * 2) * 155 : 155 - E.i((p - .5) * 2) * 95; f.rot = lerp(0, 175, E.io(p)); f.flip = -1; f.clipG = 1; f.whirl = 1; f.wp = t * 30; S.boxFront = true; }
+    else if (t < 18.2) f.vis = false;
+    else if (t < 19.0) { f.x = 930; f.sy = .82; f.sx = 1.08; f.sweat = 1; f.hr = -10 + Math.sin(t * 9) * 4; f.legL = f.legR = 0; f.tail = -8; }
+    else { const p = P(t, 19.0, 19.6); f.x = lerp(930, 300, p); f.y = arc(p) * 255; f.rot = -18; f.flip = 1; f.whirl = 1; f.wp = t * 34; f.sx = 1.1; f.sy = .95; }
+    if (within(t, 13.55, 14.1)) { const p = P(t, 13.55, 14.1); S.box.sy = 1 - .16 * Math.sin(p * Math.PI * 3) * (1 - p); S.box.flap = Math.sin(p * 20) * (1 - p); }
+    if (within(t, 14.3, 15.6)) S.box.rot = Math.sin(t * 50) * .8;
+    if (within(t, 16, 17.4)) { S.box.legs = clamp((t - 16) * 4, 0, 1); S.box.step = 1; S.box.y = Math.abs(Math.sin((t - 16) / .35 * Math.PI)) * 5; S.box.tail = 1; }
+    if (within(t, 17.4, 18.2)) { S.box.legs = 1; S.box.tail = .5; }
+    if (t >= 18.2) { const up = E.o(P(t, 18.2, 18.6)), down = P(t, 19.35, 19.8); S.box.y = down > 0 ? lerp(520, 0, E.i(down)) : up * 520; S.box.rot = down > 0 ? lerp(160, 180, down) : up * 160; S.box.legs = 0; }
+    // orange
+    if (t < 13.0) o.vis = false;
+    else if (t < 14.3) { runSeg(o, t, 13.0, 14.3, -170, 1250); o.angry = 1; }
+    else if (t < 14.9) o.vis = false;
+    else if (t < 15.55) { const p = P(t, 14.9, 15.55); o.x = lerp(1250, 600, E.o(p)); o.flip = -1; o.rot = 18 * (1 - p * .6); o.whirl = p < .8 ? 1 : 0; o.wp = t * 30; o.skid = p < .85 ? 1 : 0; o.sx = 1.08; o.sy = .95; }
+    else if (t < 17.4) {
+      o.x = 600; const ph = Math.floor((t - 15.6) / .55); o.flip = ph % 2 ? 1 : -1; o.hr = ph % 2 ? -14 : 14; o.hy = -4;
+      say('o', '？', 15.7, 17.1, 34); idle(o, t);
+    } else if (t < 19.6) {
+      o.x = 600; o.flip = -1;
+      if (t < 17.65) { o.y = arc(P(t, 17.4, 17.65)) * 34; o.sy = 1.12; o.hr = 18; }
+      if (t > 19.05 && t < 19.45) { o.sy = .78; o.sx = 1.12; o.hy = 12; o.hr = -16; }
+      if (t > 19.45) { o.flip = 1; o.angry = 1; o.sy = .9; }
+      say('o', '！？', 17.4, 18.3, 40);
     }
-  }
-  const other = k => (k === 'o' ? 'f' : 'o');
-
-  function startLap(newDir, newLeader) {
-    dir = newDir; leader = newLeader; spoke = false;
-    const L = cats[leader];
-    x = dir > 0 ? -L.w/2 - 10 : W + L.w/2 + 10;
-  }
-
-  function bubble(k, text) {
-    const c = cats[k];
-    const b = document.createElement('div');
-    b.className = 'bubble'; b.textContent = text; b.style.color = c.color;
-    const left = Math.min(W - 60, Math.max(60, c.x));
-    b.style.left = left + 'px';
-    b.style.top = (baseY - c.h - c.jump - 14) + 'px';
-    stage.appendChild(b);
-    setTimeout(() => b.remove(), 1350);
-  }
-  function dust(px) {
-    for (let i = 0; i < 3; i++) {
-      const d = document.createElement('div');
-      const s = 8 + Math.random()*10;
-      d.className = 'dust';
-      d.style.width = d.style.height = s + 'px';
-      d.style.left = (px - dir*(10 + i*12) - s/2) + 'px';
-      d.style.top = (baseY - s + 2 - Math.random()*6) + 'px';
-      d.style.animationDelay = (i*40) + 'ms';
-      stage.appendChild(d);
-      setTimeout(() => d.remove(), 900);
+    say('f', '嘿…嘿嘿', 18.3, 19.1);
+  } else if (t < 26.45) { // ---- 5. the cabinet crash
+    // fluffy
+    if (t < 20.0) runSeg(f, t, 19.6, 20.0, 300, 200);
+    else if (t < 20.45) { const p = P(t, 20.0, 20.45); f.x = lerp(200, 62, p); f.y = lerp(0, 200, E.o(p)) + arc(p) * 70; f.flip = 1; f.top = 1; f.sy = 1 + .15 * arc(p); }
+    else if (t < 25.3) {
+      f.x = 62; f.y = 200; f.top = 1; f.flip = 1; f.tail = 20;
+      if (t > 21.4 && t < 23.7) { f.sy = 1 + Math.abs(Math.sin(t * 14)) * .07; f.hr = Math.sin(t * 14) * 7; f.tail = 20 + Math.sin(t * 18) * 25; f.hy = -Math.abs(Math.sin(t * 14)) * 6; }
+      else idle(f, t);
+      if (t > 24.3) { f.sweat = 1; f.sy = .95; f.hr = 10; }
+    } else if (t < 25.7) { const p = P(t, 25.3, 25.7); f.x = lerp(62, 330, p); f.y = lerp(200, 0, E.i(p)) + arc(p) * 90; f.flip = -1; f.top = 1; f.whirl = 1; f.wp = t * 30; }
+    else runSeg(f, t, 25.7, 26.5, 330, 560);
+    say('f', '哈哈哈哈！', 21.5, 23.4); say('f', '糟了…', 24.5, 25.3);
+    // orange
+    if (t < 20.55) { runSeg(o, t, 19.75, 20.55, 600, 138, null, E.i); o.angry = 1; o.sx = 1.2; }
+    else if (t < 21.3) { o.x = 142; o.sx = .42; o.sy = 1.12; o.flip = 1; o.rot = 0; o.hy = 0; }
+    else if (t < 21.8) { const p = P(t, 21.3, 21.8); o.x = 138; o.sx = lerp(.42, 1, E.back(clamp(p * 2, 0, 1))); o.rot = 85 * E.i(p); o.flip = 1; }
+    else if (t < 24.0) { o.x = 138; o.rot = 85 + (t < 22.1 ? Math.sin((t - 21.8) * 30) * 4 * (1 - P(t, 21.8, 22.1)) : 0); o.flip = 1; o.stars = 1; o.legL = Math.max(0, Math.sin(t * 9)) * 18; o.legR = Math.max(0, Math.sin(t * 9 + 2)) * 18; }
+    else if (t < 24.5) { const p = P(t, 24.0, 24.5); o.x = 138; o.rot = 85 * (1 - E.back(p)); o.flip = -1; o.y = arc(p) * 40; }
+    else if (t < 25.6) { o.x = 138; o.flip = -1; o.angry = 2; o.sx = 1 + Math.sin(t * 60) * .03; o.sy = 1.06; o.hr = 8; }
+    else if (t < 26.2) { runSeg(o, t, 25.6, 26.2, 138, 400); o.angry = 1; }
+    else { const p = P(t, 26.2, 26.45); o.x = lerp(400, 560, p); o.y = arc(p) * 90; o.flip = -1; o.rot = 22; o.sx = 1.15; o.sy = .9; }
+    say('o', '喵——！！', 24.45, 25.4, 34, 120);
+    if (within(t, 20.55, 21.3)) S.shelf = Math.sin((t - 20.55) * 40) * 2.5 * (1 - P(t, 20.55, 21.3));
+    bst(205, 215, 48, 20.55, 21.2); txt(300, 250, '砰！！', 20.55, 21.5, '#e2763a', 64, -12);
+    // picture frame falls on her head, then to the floor
+    if (t >= 20.9) {
+      if (t < 21.25) { const p = E.i(P(t, 20.9, 21.25)); S.frame.y = lerp(110, 168, p); S.frame.x = lerp(140, 150, p); S.frame.rot = 8 * p; }
+      else { const p = P(t, 21.25, 21.75); S.frame.x = lerp(150, 440, p); S.frame.y = lerp(168, G - 28, E.i(p)) - arc(p) * 70; S.frame.rot = lerp(8, 196, p); }
     }
-  }
-  const pick = a => a[Math.floor(Math.random()*a.length)];
-
-  // speed lines that trail the runner
-  const lines = [0,1,2].map(i => { const s = document.createElement('div'); s.className = 'speed'; stage.appendChild(s); return s; });
-
-  function draw(dt) {
-    const L = cats[leader], F = cats[other(leader)];
-    const speed = W * (fast ? 0.42 : 0.24) + 60;     // px per second
-    if (wait > 0) {
-      wait -= dt;
-      if (wait <= 0) startLap(-dir, other(leader));
+    txt(200, 150, '咚', 21.25, 21.9, '#b27c55', 44, 10);
+  } else if (t < 30.3) { // ---- 6. brawl cloud
+    o.vis = f.vis = false;
+    const a = P(t, 26.45, 26.7), z = P(t, 29.95, 30.3);
+    S.cloud = { x: 560 + Math.sin(t * 3.1) * 45 + Math.sin(t * 7.3) * 12, y: G - 115 + Math.sin(t * 5) * 8, s: E.back(a) * (1 + z * .5), alpha: 1 - z, t };
+    S.frame = { x: 440, y: G - 28, rot: 196 };
+  } else { // ---- 7. reversal
+    S.frame = { x: 440, y: G - 28, rot: 196 };
+    if (t < 32.3) {
+      o.x = 470; f.x = 690; o.flip = -1; f.flip = 1;
+      if (t < 31.3) { o.dazed = f.dazed = 1; o.rot = Math.sin(t * 3) * 7; f.rot = -Math.sin(t * 3 + 1) * 6; o.hr = Math.sin(t * 4) * 10; f.hr = -Math.sin(t * 4) * 10; o.sy = f.sy = .94; }
+      else { idle(o, t); idle(f, t, 1); o.hr = 10; f.hr = -10; }
+      if (t > 31.9) { const p = P(t, 31.9, 32.25); f.sy = 1 - .2 * E.o(p); f.sx = 1 + .12 * E.o(p); f.rot = -6 * p + Math.sin(t * 45) * 2 * p; f.tail = 35; }
+      say('f', '……', 31.3, 31.9); say('o', '……', 31.4, 31.9);
+      say('f', '换我追了！', 31.9, 32.8);
     } else {
-      x += dir * speed * dt;
+      if (t < 32.55) { const p = P(t, 32.3, 32.55); o.x = 470; o.y = E.o(p) * 110; o.sy = 1.3; o.sx = .85; o.flip = 1; o.sweat = 1; }
+      else if (t < 32.85) { const p = P(t, 32.55, 32.85); o.x = lerp(470, -220, E.i(p)); o.y = lerp(110, 60, p); o.flip = 1; o.whirl = 1; o.wp = t * 40; o.sx = 1.4; o.sy = .8; o.rot = -14; }
+      else if (!runSeg(o, t, 33.5, 35.3, 1250, -200, 930)) o.vis = false;
+      if (within(t, 32.55, 33.2)) S.ghosts.push({ who: 'o', s: Object.assign(base(), { x: 470, y: 110, flip: 1, sy: 1.3, sx: .85, alpha: .35 * (1 - P(t, 32.55, 33.2)) }) });
+      if (t < 32.6) { f.x = 690; f.flip = 1; f.sy = .82; f.sx = 1.12; }
+      else if (t < 33.3) runSeg(f, t, 32.6, 33.3, 690, -220);
+      else if (!runSeg(f, t, 33.85, 35.6, 1250, -200, 930)) f.vis = false;
+      if (t > 33.5) o.sweat = 1;
+      say('o', '哇——！', 32.3, 33.1);
+      say('f', '站住～', 34.1, 35.0); say('o', '救命呀', 34.4, 35.2);
     }
-    // follower keeps a gap that breathes: sometimes almost catches up
-    const gap = (L.w/2 + F.w/2) * (1.05 + 0.55*(0.5 + 0.5*Math.cos(t*1.7)));
-    L.x = x; F.x = x - dir*gap;
+  }
+  if (t >= 19.8 && t < 26.45) S.box = Object.assign(S.box, { x: 930, y: 0, rot: 180, legs: 0 });
+  if (t >= 26.45) S.box = Object.assign(S.box, { x: 930, y: 0, rot: 180, legs: 0 });
+  if (t >= 19.8 && t < 20.2) S.box.sy = 1 - .12 * Math.sin(P(t, 19.8, 20.2) * Math.PI * 2) * (1 - P(t, 19.8, 20.2));
+  // iris
+  if (t < .8) S.iris = E.o(P(t, 0, .8));
+  else if (t > 35.6) S.iris = 1 - E.io(P(t, 35.6, 36.6));
+  return S;
+}
 
-    // lap finished when the follower has left the stage
-    const fEdge = dir > 0 ? F.x - F.w/2 > W + 20 : F.x + F.w/2 < -20;
-    if (wait <= 0 && fEdge) wait = 0.7;
+// sound + burst cues
+const CUES = [];
+for (let i = 0; i < 6; i++) CUES.push([.4 + i * .6, 'tip']);
+CUES.push([4.55, 'pop'], [4.8, 'whoosh'], [4.85, 'boing'], [5.25, 'thud', [680, G, 12]], [5.5, 'zip'], [6.6, 'meow'], [7.4, 'rev'], [8.1, 'zip'], [8.5, 'zip'],
+  [10.38, 'boing'], [10.68, 'boing'], [13.0, 'zip'], [13.15, 'boing'], [13.55, 'plop', [870, G, 6]], [14.92, 'skid'], [15.7, 'pop'],
+  [16.0, 'tip'], [16.35, 'tip'], [16.7, 'tip'], [17.05, 'tip'], [17.4, 'pop'], [18.2, 'whoosh'], [19.0, 'boing'], [19.75, 'zip'], [19.8, 'thud', [930, G, 8]],
+  [20.0, 'boing'], [20.55, 'crash', [135, G - 140, 14]], [21.25, 'bonk'], [21.5, 'laugh'], [21.8, 'thud', [260, G, 8]], [24.0, 'boing'], [24.45, 'meow'],
+  [25.3, 'boing'], [25.7, 'zip'], [26.2, 'whoosh'], [29.95, 'whoosh'], [31.9, 'pop'], [32.3, 'boing'], [32.55, 'zip'], [33.5, 'zip'], [35.6, 'iris']);
+for (let x = 26.5; x < 29.9; x += .22) CUES.push([x, Math.round((x - 26.5) / .22) % 3 ? 'scuffle' : 'bonk']);
+CUES.sort((a, b) => a[0] - b[0]);
 
-    // chaser shouts once mid-stage, the runner answers
-    if (!spoke && wait <= 0 && Math.abs(F.x - W*0.45) < W*0.08) {
-      spoke = true;
-      bubble(other(leader), pick(F.say));
-      setTimeout(() => bubble(leader, pick(L.run)), 650);
+// ---------- audio ----------
+let ac = null, soundOn = false, noiseBuf = null;
+function audio() { if (!ac) { const A = window.AudioContext || window.webkitAudioContext; if (!A) return null; ac = new A(); noiseBuf = ac.createBuffer(1, ac.sampleRate, ac.sampleRate); const d = noiseBuf.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1; } if (ac.state === 'suspended') ac.resume(); return ac; }
+function tone(type, f0, f1, dur, vol, at = 0, vib = 0) {
+  const t0 = ac.currentTime + at, o = ac.createOscillator(), g = ac.createGain(); o.type = type;
+  o.frequency.setValueAtTime(f0, t0); o.frequency.exponentialRampToValueAtTime(Math.max(20, f1), t0 + dur);
+  if (vib) { const l = ac.createOscillator(), lg = ac.createGain(); l.frequency.value = 16; lg.gain.value = vib; l.connect(lg).connect(o.frequency); l.start(t0); l.stop(t0 + dur); }
+  g.gain.setValueAtTime(vol, t0); g.gain.exponentialRampToValueAtTime(.001, t0 + dur); o.connect(g).connect(ac.destination); o.start(t0); o.stop(t0 + dur + .02);
+}
+function noise(dur, ftype, f0, f1, q, vol, at = 0) {
+  const t0 = ac.currentTime + at, s = ac.createBufferSource(), fl = ac.createBiquadFilter(), g = ac.createGain(); s.buffer = noiseBuf;
+  fl.type = ftype; fl.Q.value = q; fl.frequency.setValueAtTime(f0, t0); fl.frequency.exponentialRampToValueAtTime(f1, t0 + dur);
+  g.gain.setValueAtTime(vol, t0); g.gain.exponentialRampToValueAtTime(.001, t0 + dur); s.connect(fl).connect(g).connect(ac.destination); s.start(t0); s.stop(t0 + dur);
+}
+const SFX = {
+  tip: () => tone('sine', 1300, 900, .06, .07),
+  pop: () => { tone('triangle', 880, 1400, .09, .12); tone('triangle', 1400, 1800, .07, .08, .06); },
+  boing: () => tone('sine', 170, 520, .38, .22, 0, 40),
+  zip: () => { tone('sawtooth', 260, 1900, .22, .06); noise(.25, 'bandpass', 900, 3500, 2, .18); },
+  whoosh: () => noise(.4, 'bandpass', 400, 2400, 1.4, .28),
+  thud: () => { tone('sine', 150, 45, .28, .45); noise(.12, 'lowpass', 600, 200, 1, .3); },
+  crash: () => { noise(.7, 'lowpass', 2200, 300, .8, .55); tone('square', 110, 40, .45, .16); tone('triangle', 2400, 2300, .5, .04, .05); },
+  bonk: () => { tone('square', 720, 360, .12, .08); tone('sine', 1500, 700, .14, .1); },
+  skid: () => noise(.6, 'bandpass', 3000, 1300, 7, .3),
+  rev: () => { tone('sawtooth', 70, 160, .7, .09, 0, 25); },
+  plop: () => tone('sine', 520, 110, .18, .25),
+  meow: () => { const t0 = ac.currentTime, o = ac.createOscillator(), f = ac.createBiquadFilter(), g = ac.createGain(); o.type = 'sawtooth'; o.frequency.setValueAtTime(480, t0); o.frequency.linearRampToValueAtTime(780, t0 + .25); o.frequency.linearRampToValueAtTime(460, t0 + .7); f.type = 'bandpass'; f.Q.value = 4; f.frequency.setValueAtTime(900, t0); f.frequency.linearRampToValueAtTime(1600, t0 + .3); f.frequency.linearRampToValueAtTime(800, t0 + .7); g.gain.setValueAtTime(.001, t0); g.gain.linearRampToValueAtTime(.22, t0 + .06); g.gain.exponentialRampToValueAtTime(.001, t0 + .75); o.connect(f).connect(g).connect(ac.destination); o.start(t0); o.stop(t0 + .8); },
+  laugh: () => { for (let i = 0; i < 6; i++) tone('triangle', 620 - i * 25, 480 - i * 25, .12, .1, i * .17); },
+  scuffle: () => noise(.09, 'bandpass', 700 + Math.random() * 1800, 600, 2, .25),
+  iris: () => tone('sine', 900, 200, .9, .12),
+};
+function play(name) { if (!soundOn || !ac || !SFX[name]) return; try { SFX[name](); } catch (e) {} }
+
+// ---------- render ----------
+let fontBoost = 1;
+function resize() {
+  const w = cv.clientWidth, h = cv.clientHeight; dpr = Math.min(2, window.devicePixelRatio || 1);
+  cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr); scale = w / VW;
+  fontBoost = clamp(560 / w, 1, 1.7); buildBg(); render();
+}
+let T = .9, prevPos = {};
+function render(dt = 0) {
+  const S = scene(T), boil = Math.floor(T * 10), R = rng(boil * 31 + 7);
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  if (bgCache.length) ctx.drawImage(bgCache[Math.floor(T * 4) % 3], 0, 0);
+  ctx.setTransform(scale * dpr, 0, 0, scale * dpr, 0, 0);
+  // wall picture (falls during the crash)
+  drawFrame(ctx, S.frame.x, S.frame.y, S.frame.rot, R);
+  // shadows
+  for (const k of ['o', 'f']) { const s = S[k], d = DEF[k]; if (!s.vis || s.top || s.clipG) continue; const w = (k === 'o' ? 64 : 92) * (1 - Math.min(.6, s.y / 300)); ctx.save(); ctx.globalAlpha = .13 * (1 - Math.min(.7, s.y / 300)); ctx.fillStyle = INK; ctx.beginPath(); ctx.ellipse(s.x, G + 3, w, 8, 0, 0, 7); ctx.fill(); ctx.restore(); }
+  // box behind the cats
+  drawBox(ctx, S.box, R, T);
+  if (S.box.tail && S.box.vis) { ctx.save(); const d = DEF.f; ctx.translate(S.box.x - 60, G - 34 - S.box.y); ctx.scale(-d.k * .9, d.k * .9); const p = d.tail.p; ctx.rotate(rad(Math.sin(T * 9) * 14 * S.box.tail - 8)); ctx.translate(-p[0], -p[1]); if (d.img.complete) drawPart(ctx, d, d.tail); ctx.restore(); }
+  // ghosts / afterimages
+  for (const g of S.ghosts) drawCat(ctx, DEF[g.who], g.s, R);
+  // cats behind the cabinet
+  for (const k of ['f', 'o']) if (!S[k].top) drawCat(ctx, DEF[k], S[k], R);
+  if (S.boxFront) drawBox(ctx, S.box, R, T);
+  drawCabinet(ctx, S.shelf, R);
+  for (const k of ['f', 'o']) if (S[k].top) drawCat(ctx, DEF[k], S[k], R);
+
+  // particles from motion
+  if (dt > 0) {
+    for (const k of ['o', 'f']) {
+      const s = S[k], d = DEF[k], pv = prevPos[k];
+      const vx = pv && pv.vis && s.vis ? (s.x - pv.x) / dt : 0;
+      if (s.vis && s.whirl && s.y < 30 && Math.abs(vx) > 60 && Math.abs(vx) < 4000 && Math.random() < dt * 22) emit(s.x - Math.sign(vx) * 30, G - 4, 1, { vx: -Math.sign(vx) * 60, r: 7 });
+      if (s.vis && s.rev && Math.random() < dt * 30) emit(s.x - 30, G - 4, 1, { vx: -220, r: 8, vr: 80 });
+      if (s.vis && s.skid && Math.random() < dt * 40) emit(s.x + 20, G - 4, 1, { vx: 90, r: 9 });
+      if (s.vis && s.angry && Math.random() < dt * (s.angry > 1 ? 14 : 6)) { const [hx, hy] = toWorld(d, s, d.top[0] + 60, d.top[1]); emit(hx, hy, 1, { vy: -60, vr: 30, r: 6, color: '#d8cfc8', life: .7 }); }
+      s._vx = vx;
+      prevPos[k] = { x: s.x, vis: s.vis };
     }
-
-    for (const [k, c] of Object.entries(cats)) {
-      const moving = wait <= 0;
-      const stride = fast ? 13 : 10;
-      if (moving) c.phase += dt * stride * (k === leader ? 1 : 1.08);
-      const hopH = c.h * (k === 'o' ? 0.16 : 0.12);
-      let hop = moving ? Math.abs(Math.sin(c.phase)) * hopH : 0;
-      // extra tap jump
-      if (c.jumpV || c.jump > 0) { c.jumpV -= 2600*dt; c.jump = Math.max(0, c.jump + c.jumpV*dt); if (c.jump === 0) c.jumpV = 0; }
-      const y = hop + c.jump;
-      const onGround = y < hopH*0.08;
-      if (onGround && !c.lastGround && moving && c.x > 0 && c.x < W && Math.random() < 0.6) dust(c.x);
-      c.lastGround = onGround;
-
-      const squash = onGround ? 0.93 : 1 + Math.min(0.05, y / c.h * 0.3);
-      const lean = moving ? dir * (7 + 5*Math.sin(c.phase*2)) : 0;
-      const flip = dir > 0 ? -1 : 1;     // drawings face forward; flip so fluffy's tail trails behind
-      c.el.style.transform =
-        `translate(${c.x - c.w/2}px, ${baseY - c.h - y + 4}px) rotate(${lean}deg) scale(${flip / Math.sqrt(squash)}, ${squash})`;
-      const shS = 1 - Math.min(0.55, y / (c.h*0.6));
-      c.sh.style.transform = `translate(${c.x - c.sh.offsetWidth/2}px, ${baseY - 6}px) scale(${shS})`;
-      c.sh.style.opacity = 0.4 + 0.6*shS;
-    }
-
-    // speed lines behind the leader
-    lines.forEach((s, i) => {
-      const len = (fast ? 46 : 30) + i*10 + 6*Math.sin(t*9 + i);
-      const lx = L.x - dir*(L.w/2 + 16 + i*6) - (dir > 0 ? len : 0);
-      s.style.width = len + 'px';
-      s.style.left = lx + 'px';
-      s.style.top = (baseY - L.h*(0.25 + i*0.17)) + 'px';
-      s.style.color = L.color;
-      s.style.opacity = wait > 0 ? 0 : 0.28;
-    });
+    stepParts(dt);
   }
+  drawParts(ctx, R);
 
-  let last = performance.now();
-  function frame(now) {
-    const dt = Math.min(0.05, (now - last) / 1000); last = now;
-    if (playing) { t += dt; draw(dt); }
-    requestAnimationFrame(frame);
+  // speed lines behind fast runners
+  for (const k of ['o', 'f']) { const s = S[k], d = DEF[k]; if (!s.vis || !s.whirl || Math.abs(s._vx || 0) < 150) continue; const dir = Math.sign(s._vx), back = s.x - dir * (k === 'o' ? 70 : 110);
+    for (let i = 0; i < 3; i++) { const y = G - s.y - d.wh * (.25 + i * .22), len = 60 + i * 18 + R() * 20; crayon(ctx, [[back, y], [back - dir * len, y + 2]], { color: d.color, w: 3, alpha: .35 }, R); } }
+
+  // brawl cloud
+  if (S.cloud) drawCloud(S.cloud, R);
+
+  // marks above heads
+  for (const k of ['o', 'f']) {
+    const s = S[k], d = DEF[k]; if (!s.vis) continue;
+    const [tx, ty] = toWorld(d, s, d.top[0], d.top[1]);
+    if (s.angry) anger(ctx, tx + 34 * (s.flip < 0 ? -1 : 1), ty + 26, R, s.angry > 1 ? 1.5 : 1);
+    if (s.sweat) sweat(ctx, tx - 50 * (s.flip < 0 ? -1 : 1), ty + 40, R);
+    if (s.stars) { const [fx, fy] = toWorld(d, s, d.face[0], d.face[1] - 140); circlingStars(ctx, fx, fy, T, R); }
+    if (s.dazed) circlingStars(ctx, tx, ty - 6, T, R);
   }
+  for (const b of S.bursts) burst(ctx, b.x, b.y, b.r, b.p, R);
+  for (const x of S.text) bigText(ctx, x.x, x.y, x.text, x.p, x.color, x.size, x.rot, R);
+  for (const b of S.say) { const s = S[b.who], d = DEF[b.who]; if (!s.vis) continue; let [tx, ty] = toWorld(d, s, d.top[0], d.top[1]); if (s.stars || Math.abs(s.rot) > 60) { [tx, ty] = toWorld(d, s, d.face[0], d.face[1]); ty -= 60; } bubble(ctx, tx + (b.dx || 0), ty - 18, b.text, b.p, d.color, b.size, R); }
 
-  for (const [k, c] of Object.entries(cats)) {
-    c.el.addEventListener('pointerdown', e => {
-      e.preventDefault();
-      if (c.jump === 0) c.jumpV = 900;
-      bubble(k, '喵！');
-    });
+  // iris
+  if (S.iris < 1) {
+    ctx.save(); ctx.fillStyle = '#2b2320'; ctx.beginPath(); ctx.rect(-10, -10, VW + 20, VH + 20);
+    ctx.arc(500, 300, Math.max(0, S.iris) * 620, 0, Math.PI * 2, true); ctx.fill('evenodd');
+    if (T > 36.4) { ctx.globalAlpha = P(T, 36.4, 36.8) * (1 - P(T, 37.3, 37.6)); ctx.fillStyle = '#fbf3e8'; ctx.font = `700 44px ${FONT}`; ctx.textAlign = 'center'; ctx.fillText('下回继续追～', 500, 300); ctx.font = `400 22px ${FONT}`; ctx.fillStyle = '#c9b8a8'; ctx.fillText('Suchan & 卷毛猫', 500, 342); }
+    ctx.restore();
   }
-  const bPlay = document.getElementById('btn-play'), bFast = document.getElementById('btn-fast');
-  function syncPlay() { bPlay.textContent = playing ? '暂停' : '继续跑'; bPlay.setAttribute('aria-pressed', String(!playing)); }
-  bPlay.addEventListener('click', () => { playing = !playing; syncPlay(); });
-  bFast.addEventListener('click', () => { fast = !fast; bFast.setAttribute('aria-pressed', String(fast)); });
+}
+function drawCloud(cl, R) {
+  const c = ctx; c.save(); c.globalAlpha = cl.alpha; c.translate(cl.x, cl.y); c.scale(cl.s, cl.s);
+  const t = cl.t, slot = Math.floor((t - 26.5) / .3), sp = ((t - 26.5) / .3) % 1;
+  // pop-out body parts behind the cloud edge
+  for (const j of [slot, slot - 1]) {
+    if (j < 0) continue; const hsh = hash(j), a = hsh * Math.PI * 2, which = Math.floor(hash(j + 99) * 5), q = j === slot ? sp : sp + 1;
+    if (q > 1.3) continue; const out = Math.sin(clamp(q / 1.3, 0, 1) * Math.PI);
+    const d = which < 2 || which === 4 ? DEF.f : DEF.o; c.save(); c.rotate(a); c.translate(120 + out * 45, 0); c.rotate(Math.PI / 2);
+    const part = which === 0 ? d.head : which === 1 ? d.tail : which === 2 ? DEF.o.head : which === 3 ? { r: DEF.o.legL } : { r: DEF.f.legL };
+    const dd = which === 2 || which === 3 ? DEF.o : DEF.f, r = part.r, sc = dd.k * 1.05;
+    c.scale(sc, -sc); c.translate(-(r[0] + r[2] / 2), -(r[1] + r[3] / 2)); if (dd.img.complete) drawPart(c, dd, part); c.restore();
+  }
+  fillPts(c, ell(0, 0, 150, 105, 26), '#fffdf8', .96);
+  for (let i = 0; i < 9; i++) { const a = i / 9 * Math.PI * 2 + t * 2; crayon(c, ell(Math.cos(a) * 70, Math.sin(a) * 45, 70 + R() * 20, 52 + R() * 15, 16, a), { color: i % 2 ? SLATE : ORANGE, w: 3.5, closed: true, alpha: .75, jit: 4 }, R); }
+  for (let i = 0; i < 14; i++) { const a = R() * Math.PI * 2, r = 30 + R() * 100; crayon(c, [[Math.cos(a) * r, Math.sin(a) * r * .7], [Math.cos(a + .7) * r * .8, Math.sin(a + .7) * r * .55]], { color: i % 2 ? SLATE : ORANGE, w: 3, alpha: .6, jit: 3 }, R); }
+  c.restore();
+  // symbols flying out
+  const SY = ['★', '#', '@', '！', '%', '＊', '?!'];
+  for (let j = Math.max(0, slot - 2); j <= slot; j++) {
+    const q = ((t - 26.5) - j * .3) / .9; if (q < 0 || q > 1) continue; const a = hash(j + 7) * Math.PI * 2;
+    c.save(); c.globalAlpha = cl.alpha * (1 - q); c.font = `700 ${34 + hash(j + 3) * 18}px ${FONT}`; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillStyle = j % 2 ? '#e2763a' : '#4f6070';
+    c.fillText(SY[j % SY.length], cl.x + Math.cos(a) * (120 + q * 120) * cl.s, cl.y + Math.sin(a) * (80 + q * 90) * cl.s); c.restore();
+  }
+}
 
-  layout();
-  addEventListener('resize', layout);
-  startLap(1, 'o');
-  x = W * 0.55;           // open mid-chase so the first frame already shows both cats
-  draw(0); syncPlay();
+// ---------- loop & UI ----------
+const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+let playing = !reduced, speed = 1, last = performance.now();
+const $ = id => document.getElementById(id);
+const seek = $('seek'), clock = $('clock'), chips = $('chips');
+SCENES.forEach(([t, name], i) => { const b = document.createElement('button'); b.type = 'button'; b.textContent = name; b.addEventListener('click', () => jump(t + (i ? 0 : .9))); chips.appendChild(b); });
+function jump(t) { T = clamp(t, 0, TOTAL - .01); parts = []; prevPos = {}; render(); ui(); }
+function ui() {
+  seek.value = T.toFixed(2); clock.textContent = `${T.toFixed(1)} / ${TOTAL} 秒`;
+  let cur = 0; SCENES.forEach(([t], i) => { if (T >= t) cur = i; });
+  [...chips.children].forEach((b, i) => b.classList.toggle('on', i === cur));
+  $('b-play').textContent = playing ? '暂停' : '播放'; $('b-play').setAttribute('aria-pressed', String(!playing));
+}
+function frame(now) {
+  const dt = Math.min(.05, (now - last) / 1000); last = now;
+  if (playing) {
+    const prev = T; T += dt * speed;
+    if (T >= TOTAL) { T = 0; parts = []; prevPos = {}; }
+    else for (const [ct, name, b] of CUES) if (ct > prev && ct <= T) { play(name); if (b) emit(b[0], b[1], b[2], { vr: 220, vy: -60, r: 10, spread: 50 }); }
+    render(dt * speed); ui();
+  }
   requestAnimationFrame(frame);
+}
+$('b-play').addEventListener('click', () => { playing = !playing; if (playing && T >= TOTAL - .05) T = 0; ui(); });
+$('b-again').addEventListener('click', () => { jump(0); playing = true; ui(); });
+$('b-slow').addEventListener('click', e => { speed = speed === 1 ? .45 : 1; e.currentTarget.setAttribute('aria-pressed', String(speed !== 1)); });
+$('b-snd').addEventListener('click', e => { soundOn = !soundOn; if (soundOn) audio(); e.currentTarget.setAttribute('aria-pressed', String(soundOn)); e.currentTarget.textContent = soundOn ? '关声音' : '开声音'; });
+seek.addEventListener('input', () => jump(parseFloat(seek.value)));
+cv.addEventListener('click', () => { playing = !playing; ui(); });
+
+window.__seek = t => { jump(t); };
+addEventListener('resize', resize);
+Promise.all([imgO, imgF].map(i => i.decode ? i.decode().catch(() => {}) : null)).then(() => { resize(); });
+if (document.fonts && document.fonts.load) document.fonts.load(`700 26px ${FONT}`).then(() => render()).catch(() => {});
+resize(); ui();
+requestAnimationFrame(frame);
 })();
 </script>
 </body>
