@@ -1,7 +1,7 @@
 rules_version = '2';
 // Yura 預約系統｜Firestore 安全規則
 // 使用方式：Firebase 主控台 → Firestore Database → 規則 → 整個貼上 → 發布
-// ⚠️ 把下面的 yura@example.com 換成你自己的後台登入 Email（可以放多個）
+// ⚠️ 把下面的 yura@example.com 換成你自己的後台登入 Email
 service cloud.firestore {
   match /databases/{database}/documents {
 
@@ -9,50 +9,47 @@ service cloud.firestore {
       return request.auth != null
         && request.auth.token.email in ['yura@example.com'];
     }
+    function maxLen(v, n) { return v is string && v.size() <= n; }
 
-    function str(v, min, max) { return v is string && v.size() >= min && v.size() <= max; }
-
-    function validBooking(d) {
-      return d.keys().hasOnly(['service','serviceName','plan','planLabel','price','total','addons','method',
-                               'petName','fields','customer','slotIds','slotLabels','customTimes','agreed',
-                               'status','createdAt'])
-        && d.status == 'new'
-        && d.createdAt == request.time
-        && d.agreed == true
-        && d.service in ['general','deceased','search','illustration']
-        && str(d.plan, 1, 40)
-        && str(d.petName, 1, 200)
-        && d.customer is map
-        && d.customer.keys().hasOnly(['name','email'])
-        && str(d.customer.name, 0, 100)
-        && str(d.customer.email, 3, 200)
-        && d.fields is list && d.fields.size() <= 40
-        && d.slotIds is list && d.slotIds.size() <= 2
-        && d.total is number && d.total >= 0 && d.total < 100000;
-    }
-
-    // 網站設定：大家都能讀，只有管理員能改
+    // 時段設定（每週固定時段、公休、加開、封鎖）：大家都能讀，只有你能改
     match /settings/{id} {
       allow read: if true;
       allow write: if isAdmin();
     }
 
-    // 開放時段：大家都能看；客人送出預約時只能把「開放」改成「已選」
-    match /slots/{id} {
+    // 已被預約的時段（只有日期和時間，沒有客人資料）
+    // 客人只能「新增」：同一個時段已經有人，就會被拒絕 → 不會撞期
+    match /taken/{id} {
       allow read: if true;
-      allow create, delete: if isAdmin();
-      allow update: if isAdmin() || (
-        resource.data.status == 'open'
-        && request.resource.data.status == 'held'
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
+      allow create: if isAdmin() || (
+        id.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}_[0-9]{2}:[0-9]{2}$')
+        && request.resource.data.keys().hasOnly(['date', 'time', 'createdAt'])
+        && id == request.resource.data.date + '_' + request.resource.data.time
+      );
+      allow update, delete: if isAdmin();
+    }
+
+    // 預約：只有你能看、能改；客人只能從網站送出一筆「待確認」的預約
+    match /bookings/{id} {
+      allow read, update, delete: if isAdmin();
+      allow create: if isAdmin() || (
+        request.resource.data.status == 'pending'
+        && request.resource.data.web == true
+        && request.resource.data.id == id
+        && request.resource.data.keys().hasOnly(['id', 'web', 'status', 'createdAt', 'updatedAt', 'customerName', 'contact', 'pet',
+             'service', 'source', 'channel', 'method', 'ext', 'date', 'time', 'takenKey', 'total', 'deposit', 'depositPaid',
+             'balancePaid', 'paidAt', 'note'])
+        && maxLen(request.resource.data.customerName, 100) && maxLen(request.resource.data.pet, 200)
+        && maxLen(request.resource.data['service'], 140) && maxLen(request.resource.data.note, 6000)
+        && maxLen(request.resource.data.date, 10) && maxLen(request.resource.data.time, 10)
+        && request.resource.data.total == null && request.resource.data.depositPaid == false && request.resource.data.balancePaid == false
+        && (!('takenKey' in request.resource.data)
+            || existsAfter(/databases/$(database)/documents/taken/$(request.resource.data.takenKey)))
       );
     }
 
-    // 預約：客人可以新增、可以用 8 碼編號查詢自己那一筆；列表與修改只有管理員
-    match /bookings/{id} {
-      allow get: if true;
-      allow list, update, delete: if isAdmin();
-      allow create: if id.matches('^[A-Z0-9]{8}$') && validBooking(request.resource.data);
-    }
+    // 客人資料、似顏繪排程：只有你
+    match /customers/{id} { allow read, write: if isAdmin(); }
+    match /arts/{id} { allow read, write: if isAdmin(); }
   }
 }

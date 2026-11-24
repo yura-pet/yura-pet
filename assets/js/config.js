@@ -5,7 +5,7 @@
 //  詳細步驟請看 SETUP.md
 // =====================================================
 export const CONFIG = {
-  // ↓↓↓ 把 Firebase 主控台給你的 firebaseConfig 內容貼在這裡 ↓↓↓
+  // ↓↓↓ Firebase 設定（預約網站和「Yura 預約管理」後台共用）↓↓↓
   firebase: {
     apiKey: "",
     authDomain: "",
@@ -19,9 +19,6 @@ export const CONFIG = {
   // true = 還沒接資料庫時，預約資料只透過「傳到 LINE」交給 Yura（不顯示示範模式提示）
   lineMode: true,
 
-  // Yura 預約管理後台（Netlify）的公開網址：可預約時段照後台設定、客人送出的預約自動進後台
-  // 後台還沒更新前連不上，網站會自動改用下面的固定時段
-  managerApi: "https://endearing-taiyaki-794709.netlify.app/api/public",
 
   // 後台還沒設定前的預設值（之後可以在後台「網站設定」修改）
   defaults: {

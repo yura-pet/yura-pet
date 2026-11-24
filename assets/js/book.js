@@ -408,6 +408,7 @@ async function submit() {
     ].filter(x => x.value),
     customer: { name: String(state.values.ownerName || "").trim().slice(0, 100), email: (state.customer.email || "").trim().slice(0, 200) },
     slotIds: hasSlotStep() ? [...state.picks] : [],
+    slots: hasSlotStep() ? state.picks.map(id => slots.find(y => y.id === id)).filter(Boolean).map(x => ({ date: x.date, time: x.time })) : [],
     slotLabels: hasSlotStep() ? state.picks.map(id => slotLabel(slots.find(x => x.id === id))) : [],
     customTimes: hasSlotStep() && state.noFit ? state.customTimes.trim().slice(0, 1000) : "",
     agreed: true

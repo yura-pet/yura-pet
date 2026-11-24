@@ -54,91 +54,151 @@ function pay(b) {
   return { total, dep, balance, received, outstanding: total === null ? 0 : Math.max(total - received, 0), st, label };
 }
 
-// ================= 資料層 =================
-const PW_KEY = "yura_mgr_pw", LOCAL_KEY = "yura_mgr_local", CACHE_KEY = "yura_mgr_cache";
+// ================= 資料層（Firebase） =================
+const CACHE_KEY = "yura_mgr_cache", LOCAL_KEY = "yura_mgr_local";
 const ls = { get(k) { try { return localStorage.getItem(k); } catch { return null; } }, set(k, v) { try { localStorage.setItem(k, v); } catch {} }, del(k) { try { localStorage.removeItem(k); } catch {} } };
-let mode = "cloud"; // cloud | local
-let password = ls.get(PW_KEY) || sessionStorage.getItem(PW_KEY) || "";
+let mode = "cloud"; // cloud（Firebase）| local（還沒設定 Firebase：資料只在這台裝置）
 let DB = { bookings: [], customers: [], arts: [], settings: [] };
 const fixDB = () => { DB.bookings ||= []; DB.customers ||= []; DB.arts ||= []; DB.settings ||= []; };
+const KINDS = ["bookings", "customers", "arts", "settings"];
+const FBV = "https://www.gstatic.com/firebasejs/10.12.2/";
+let F = null; // { fs, db, auth, au }
 
-async function api(method, path, body) {
-  const r = await fetch("/api/" + path, {
-    method, headers: { "content-type": "application/json", authorization: "Bearer " + password },
-    body: body ? JSON.stringify(body) : undefined
-  });
-  let data = null; try { data = await r.json(); } catch {}
-  if (!r.ok) { const e = new Error((data && data.error) || ("HTTP " + r.status)); e.status = r.status; e.noApi = !data; throw e; }
-  return data;
+async function firebase() {
+  if (F) return F;
+  const { CONFIG } = await import("../assets/js/config.js?v=" + Date.now().toString(36).slice(0, 6));
+  if (!CONFIG.firebase || !CONFIG.firebase.apiKey) return null;
+  const [app, fs, auth] = await Promise.all([import(FBV + "firebase-app.js"), import(FBV + "firebase-firestore.js"), import(FBV + "firebase-auth.js")]);
+  const a = app.getApps().length ? app.getApp() : app.initializeApp(CONFIG.firebase);
+  F = { fs, db: fs.getFirestore(a), auth, au: auth.getAuth(a) };
+  if (window.__FB_EMULATOR__) { fs.connectFirestoreEmulator(F.db, "127.0.0.1", 8080); auth.connectAuthEmulator(F.au, "http://127.0.0.1:9099", { disableWarnings: true }); } // 只在本機測試時使用
+  return F;
 }
-function persistLocal() { if (mode === "local") ls.set(LOCAL_KEY, JSON.stringify(DB)); else ls.set(CACHE_KEY, JSON.stringify(DB)); }
+const clean = o => JSON.parse(JSON.stringify(o)); // 拿掉 undefined
+function persistLocal() { ls.set(mode === "local" ? LOCAL_KEY : CACHE_KEY, JSON.stringify(DB)); }
 function setSync(t) { $("#syncState").textContent = t; }
+
+// 被預約走的時段 → taken/日期_時間（給預約網站看，沒有客人資料）
+const isTimeStr = x => /^\d{2}:\d{2}$/.test(x || "");
+const takenKeyOf = b => (["booked", "pending"].includes(b.status) && /^\d{4}-\d{2}-\d{2}$/.test(b.date || "") && isTimeStr(b.time)) ? `${b.date}_${b.time}` : "";
+async function syncTaken(prevKey, b) {
+  if (mode !== "cloud") return;
+  const { fs, db } = F, key = takenKeyOf(b);
+  if (prevKey && prevKey !== key && !DB.bookings.some(x => x.id !== b.id && takenKeyOf(x) === prevKey))
+    await fs.deleteDoc(fs.doc(db, "taken", prevKey)).catch(() => {});
+  if (key) await fs.setDoc(fs.doc(db, "taken", key), { date: b.date, time: b.time, createdAt: Date.now() });
+}
 
 async function loadAll() {
   if (mode === "local") { try { DB = JSON.parse(ls.get(LOCAL_KEY)) || DB; } catch {} fixDB(); render(); return; }
   setSync("同步中…");
-  const d = await api("GET", "data");
-  DB = { bookings: d.bookings || [], customers: d.customers || [], arts: d.arts || [], settings: d.settings || [] };
+  const { fs, db } = F;
+  const snaps = await Promise.all(KINDS.map(k => fs.getDocs(fs.collection(db, k))));
+  KINDS.forEach((k, i) => DB[k] = snaps[i].docs.map(d => ({ ...d.data(), id: d.id })));
   persistLocal(); render();
   setSync("已同步 " + nowHM());
+  cleanupTaken().catch(() => {});
+}
+// 清掉沒有對應預約的「已預約時段」（例如客人送出失敗、預約被刪掉）
+async function cleanupTaken() {
+  const { fs, db } = F;
+  const snap = await fs.getDocs(fs.query(fs.collection(db, "taken"), fs.where("date", ">=", todayStr())));
+  const live = new Set(DB.bookings.map(takenKeyOf).filter(Boolean));
+  for (const d of snap.docs) if (!live.has(d.id) && Date.now() - (d.data().createdAt || 0) > 30 * 60e3) await fs.deleteDoc(d.ref).catch(() => {});
+  for (const k of live) if (!snap.docs.some(d => d.id === k)) { const [date, time] = k.split("_"); await fs.setDoc(fs.doc(db, "taken", k), { date, time, createdAt: Date.now() }).catch(() => {}); }
 }
 async function put(kind, item) {
   const list = DB[kind], i = list.findIndex(x => x.id === item.id);
+  const prevKey = kind === "bookings" && i >= 0 ? takenKeyOf(list[i]) : "";
   item.updatedAt = Date.now();
+  if (kind === "bookings") item.takenKey = takenKeyOf(item);
   if (i >= 0) list[i] = item; else list.push(item);
   persistLocal(); render();
   if (mode === "cloud") {
     setSync("儲存中…");
-    try { await api("PUT", `${kind}/${item.id}`, item); setSync("已同步 " + nowHM()); }
-    catch (e) { setSync("⚠️ 儲存失敗"); toast("儲存到雲端失敗：" + e.message); throw e; }
+    try {
+      await F.fs.setDoc(F.fs.doc(F.db, kind, item.id), clean(item));
+      if (kind === "bookings") await syncTaken(prevKey, item);
+      setSync("已同步 " + nowHM());
+    } catch (e) { setSync("⚠️ 儲存失敗"); toast("儲存到雲端失敗：" + e.message); throw e; }
   }
 }
 async function del(kind, id) {
+  const old = DB[kind].find(x => x.id === id);
   DB[kind] = DB[kind].filter(x => x.id !== id);
   persistLocal(); render();
   if (mode === "cloud") {
-    try { await api("DELETE", `${kind}/${id}`); setSync("已同步 " + nowHM()); }
-    catch (e) { toast("刪除失敗：" + e.message); loadAll(); }
+    try {
+      await F.fs.deleteDoc(F.fs.doc(F.db, kind, id));
+      if (kind === "bookings" && old) await syncTaken(takenKeyOf(old), { ...old, status: "cancelled" });
+      setSync("已同步 " + nowHM());
+    } catch (e) { toast("刪除失敗：" + e.message); loadAll(); }
   }
+}
+async function importAll(d) {
+  for (const k of ["customers", "arts", "bookings", "settings"]) for (const item of d[k] || []) {
+    if (!item || !item.id) continue;
+    if (k === "bookings") item.takenKey = takenKeyOf(item);
+    if (mode === "cloud") await F.fs.setDoc(F.fs.doc(F.db, k, item.id), clean(item));
+    const i = DB[k].findIndex(x => x.id === item.id); i >= 0 ? DB[k][i] = item : DB[k].push(item);
+  }
+  if (mode === "cloud") await loadAll(); else { persistLocal(); render(); }
 }
 
 // ================= 啟動 / 登入 =================
+let unsubLive = null;
 async function boot() {
-  try {
-    if (location.protocol === "file:") throw Object.assign(new Error("file"), { noApi: true });
-    await api("GET", "ping");
-    mode = "cloud";
-  } catch (e) {
-    if (e.status === 401) return showLogin(password ? "密碼錯誤，請重新輸入" : "");
-    if (e.noApi || e.status === 404 || e.name === "TypeError") { mode = "local"; }
-    else return showLogin(e.message);
+  let ok = null;
+  try { ok = await firebase(); } catch (e) { console.warn(e); }
+  if (!ok) {
+    mode = "local";
+    $("#login").classList.add("hidden"); $("#app").classList.remove("hidden");
+    const bar = $("#modeBar");
+    bar.innerHTML = "目前是「本機模式」：還沒設定 Firebase，資料只存在這台裝置的瀏覽器。";
+    bar.classList.remove("hidden"); setSync("本機模式"); $("#mLogout").classList.add("hidden");
+    return loadAll();
   }
-  $("#login").classList.add("hidden");
-  $("#app").classList.remove("hidden");
-  const bar = $("#modeBar");
-  if (mode === "local") {
-    bar.innerHTML = "目前是「本機模式」：資料只存在這台裝置的瀏覽器。部署到 Netlify 後就能多裝置同步（見 README）。";
-    bar.classList.remove("hidden");
-    setSync("本機模式");
-    $("#mLogout").classList.add("hidden");
-  } else {
+  F.auth.onAuthStateChanged(F.au, async user => {
+    if (!user) { if (unsubLive) unsubLive(); return showLogin(""); }
+    $("#login").classList.add("hidden"); $("#app").classList.remove("hidden");
+    $("#who") && ($("#who").textContent = user.email || "");
     try { const c = JSON.parse(ls.get(CACHE_KEY)); if (c) { DB = c; fixDB(); render(); } } catch {}
-  }
-  try { await loadAll(); } catch (e) { setSync("⚠️ 無法同步"); toast("讀取資料失敗：" + e.message); render(); }
+    try { await loadAll(); }
+    catch (e) {
+      setSync("⚠️ 無法同步");
+      toast(e.code === "permission-denied" ? "這個帳號沒有權限：請確認 Firebase 規則裡的 Email" : "讀取資料失敗：" + e.message);
+      render();
+    }
+    // 客人從網站預約時，即時出現
+    if (unsubLive) unsubLive();
+    let first = true;
+    unsubLive = F.fs.onSnapshot(F.fs.collection(F.db, "bookings"), snap => {
+      if (first) { first = false; return; }
+      const fresh = snap.docs.map(d => ({ ...d.data(), id: d.id }));
+      const newOnes = fresh.filter(b => b.status === "pending" && !DB.bookings.some(x => x.id === b.id));
+      DB.bookings = fresh; persistLocal();
+      if (!bkDlg.open && !custDlg.open && !$("#artDlg").open) render();
+      if (newOnes.length) toast(`🔔 有 ${newOnes.length} 筆新的網站預約！`);
+    }, () => {});
+  });
 }
 function showLogin(msg) {
   $("#app").classList.add("hidden");
   $("#login").classList.remove("hidden");
   $("#loginErr").textContent = msg || "";
-  setTimeout(() => $("#pw").focus(), 50);
+  setTimeout(() => ($("#em").value ? $("#pw") : $("#em")).focus(), 50);
 }
 $("#loginForm").onsubmit = async e => {
   e.preventDefault();
-  password = $("#pw").value;
-  ls.del(PW_KEY); sessionStorage.removeItem(PW_KEY);
-  if ($("#remember").checked) ls.set(PW_KEY, password); else sessionStorage.setItem(PW_KEY, password);
   $("#loginErr").textContent = "登入中…";
-  boot();
+  try {
+    await firebase();
+    await F.auth.setPersistence(F.au, $("#remember").checked ? F.auth.browserLocalPersistence : F.auth.browserSessionPersistence);
+    await F.auth.signInWithEmailAndPassword(F.au, $("#em").value.trim(), $("#pw").value);
+  } catch (err) {
+    console.warn(err);
+    $("#loginErr").textContent = /invalid|wrong|not-found|credential/.test(err.code || "") ? "Email 或密碼不對，請再試一次" : "登入失敗：" + (err.code || err.message);
+  }
 };
 
 // ================= 狀態 =================
@@ -335,12 +395,13 @@ function openBooking(b, preset = {}) {
   $("#f_customer").value = b ? custName(b) : (preset.customerName || "");
   $("#f_source").innerHTML = opts(SOURCES, x.source, "請選擇");
   $("#f_pet").value = x.pet || "";
-  $("#f_service").innerHTML = opts(SERVICES, x.service, "請選擇");
+  const withCur = (list, v) => (v && !list.includes(v) ? [v, ...list] : list); // 網站預約的項目名稱也能顯示
+  $("#f_service").innerHTML = opts(withCur(SERVICES, x.service), x.service, "請選擇");
   fillDateSelects(x.date);
   $("#f_time").innerHTML = opts(TIMES, x.time, x.time === "待安排" ? "待安排（請選擇時間）" : "請選擇時間");
   $("#f_status").innerHTML = Object.entries(STATUS).map(([k, v]) => `<option value="${k}" ${k === x.status ? "selected" : ""}>${v}</option>`).join("");
   $("#f_channel").innerHTML = opts(CHANNELS, x.channel, "請選擇");
-  $("#f_method").innerHTML = opts(METHODS, x.method, "請選擇");
+  $("#f_method").innerHTML = opts(withCur(METHODS, x.method), x.method, "請選擇");
   $("#f_ext").innerHTML = Object.entries(EXTS).map(([k, v]) => `<option value="${k}" ${String(x.ext || "") === k ? "selected" : ""}>${v}</option>`).join("");
   $("#extHint").textContent = "";
   $("#f_total").value = x.total ?? "";
@@ -698,7 +759,7 @@ $("#calGrid").addEventListener("touchend", e => { if (tx === null) return; const
 // 選單
 $("#menuBtn").onclick = () => $("#menuPop").classList.toggle("hidden");
 $("#mRefresh").onclick = () => { $("#menuPop").classList.add("hidden"); loadAll().catch(e => toast(e.message)); };
-$("#mLogout").onclick = () => { ls.del(PW_KEY); sessionStorage.removeItem(PW_KEY); password = ""; ls.del(CACHE_KEY); location.reload(); };
+$("#mLogout").onclick = async () => { ls.del(CACHE_KEY); if (F) await F.auth.signOut(F.au); location.reload(); };
 $("#mExport").onclick = () => {
   $("#menuPop").classList.add("hidden");
   const blob = new Blob([JSON.stringify(DB, null, 2)], { type: "application/json" });
@@ -712,15 +773,15 @@ $("#importFile").onchange = async e => {
     if (!Array.isArray(d.bookings) || !Array.isArray(d.customers)) throw new Error("檔案格式不對");
     d.arts ||= [];
     if (!confirm(`匯入 ${d.customers.length} 位客人、${d.bookings.length} 筆預約、${d.arts.length} 筆似顏繪？（相同的資料會被覆蓋）`)) return;
-    if (mode === "cloud") { await api("POST", "import", d); await loadAll(); }
+    if (true) { await importAll(d); }
     else { for (const k of ["bookings", "customers", "arts"]) (d[k] || []).forEach(x => { const i = DB[k].findIndex(y => y.id === x.id); i >= 0 ? DB[k][i] = x : DB[k].push(x); }); persistLocal(); render(); }
     toast("匯入完成");
   } catch (err) { toast("匯入失敗：" + err.message); }
 };
 
 // 多裝置：回到畫面或每 2 分鐘自動同步
-document.addEventListener("visibilitychange", () => { if (!document.hidden && mode === "cloud" && password && !bkDlg.open && !custDlg.open && !$("#artDlg").open) loadAll().catch(() => {}); });
-setInterval(() => { if (!document.hidden && mode === "cloud" && !bkDlg.open && !custDlg.open && !$("#artDlg").open) loadAll().catch(() => {}); }, 120000);
+document.addEventListener("visibilitychange", () => { if (!document.hidden && mode === "cloud" && F && F.au.currentUser && !bkDlg.open && !custDlg.open && !$("#artDlg").open) loadAll().catch(() => {}); });
+setInterval(() => { if (!document.hidden && mode === "cloud" && F && F.au.currentUser && !bkDlg.open && !custDlg.open && !$("#artDlg").open) loadAll().catch(() => {}); }, 120000);
 setInterval(renderToday, 60000);
 
 boot();

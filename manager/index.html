@@ -11,7 +11,7 @@
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icon-180.png">
 <title>Yura 預約管理</title>
-<link rel="stylesheet" href="app.css">
+<link rel="stylesheet" href="app.css?v=20261124fb">
 </head>
 <body>
 <div class="bg-deco" aria-hidden="true"><span class="blob b1"></span><span class="blob b2"></span><span class="blob b3"></span></div>
@@ -21,7 +21,8 @@
   <form class="panel login-box" id="loginForm">
     <div class="logo">🐾</div>
     <h1>Yura 預約管理</h1>
-    <p class="muted">請輸入管理密碼</p>
+    <p class="muted">請用你的後台帳號登入</p>
+    <input type="email" id="em" placeholder="Email" autocomplete="username" required>
     <input type="password" id="pw" placeholder="密碼" autocomplete="current-password" required>
     <label class="check"><input type="checkbox" id="remember" checked> 在這台裝置記住我</label>
     <button class="btn primary wide" type="submit">登入</button>
@@ -252,7 +253,6 @@
 <datalist id="dl_pets"></datalist>
 <input type="file" id="importFile" accept="application/json" class="hidden">
 <div class="toast" id="toast"></div>
-<script src="app.js"></script>
+<script src="app.js?v=20261124fb"></script>
 </body>
 </html>
-<!-- deploy trigger: 2026-11-18 -->
