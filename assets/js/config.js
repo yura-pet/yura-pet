@@ -7,14 +7,14 @@
 export const CONFIG = {
   // ↓↓↓ Firebase 設定（預約網站和「Yura 預約管理」後台共用）↓↓↓
   firebase: {
-    apiKey: "",
-    authDomain: "",
-    projectId: "",
-    storageBucket: "",
-    messagingSenderId: "",
-    appId: ""
+    apiKey: "AIzaSyCvgeU4v83KrE1lcd-alYYyb8Xat002Quw",
+    authDomain: "yura-booking.firebaseapp.com",
+    projectId: "yura-booking",
+    storageBucket: "yura-booking.firebasestorage.app",
+    messagingSenderId: "699695113608",
+    appId: "1:699695113608:web:022555a78bf9e0ce1f063d"
   },
-  // ↑↑↑ 留空 = 示範模式（資料只存在目前這台裝置的瀏覽器裡）↑↑↑
+  // ↑↑↑ 已連上 Firebase 專案 yura-booking ↑↑↑
 
   // true = 還沒接資料庫時，預約資料只透過「傳到 LINE」交給 Yura（不顯示示範模式提示）
   lineMode: true,
