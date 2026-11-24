@@ -279,3 +279,7 @@ a.plan-row:hover{background:rgba(255,240,231,.7)}
 .pk-x{margin-left:auto;border:0;background:none;color:var(--muted);font-size:16px;cursor:pointer}
 .slot.full{background:#f3f3f5;border-color:#e2e3e8;color:#a3a7b3;text-decoration:line-through;cursor:not-allowed}
 .slot.full .tag{text-decoration:none;color:#a3a7b3;border-color:#d5d7de}
+.cd.fullday{background:#f3f3f5!important;border-color:#e2e3e8;color:#a3a7b3}
+.cd.fullday b{text-decoration:line-through}
+.cd.fullday i{color:#b0605f;font-weight:700}
+.cd.fullday.sel{background:#d8d9df!important;color:#5b5f6e}

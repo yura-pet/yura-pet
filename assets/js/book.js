@@ -286,10 +286,11 @@ async function stepSlots() {
 
   // ---- 日曆 ----
   const WDN = ["日", "一", "二", "三", "四", "五", "六"];
-  const days = Object.keys(byDay).filter(d => byDay[d].some(x => x.status !== "full")).sort();
+  const days = Object.keys(byDay).sort();
+  const openDays = days.filter(d => byDay[d].some(x => x.status !== "full"));
   const months = [...new Set(days.map(d => d.slice(0, 7)))];
   if (!none) {
-    if (!state.calDay || !byDay[state.calDay]) state.calDay = state.picks.length ? slots.find(x => x.id === state.picks[0]).date : days[0];
+    if (!state.calDay || !byDay[state.calDay]) state.calDay = state.picks.length ? slots.find(x => x.id === state.picks[0]).date : (openDays[0] || days[0]);
     if (!state.calMonth || !months.includes(state.calMonth)) state.calMonth = state.calDay.slice(0, 7);
   }
   const dayHasPick = d => state.picks.some(id => slots.find(x => x.id === id)?.date === d);
@@ -300,10 +301,11 @@ async function stepSlots() {
     let cells = "";
     for (let i = 0; i < first; i++) cells += `<span class="cd empty"></span>`;
     for (let d = 1; d <= n; d++) {
-      const key = `${state.calMonth}-${String(d).padStart(2, "0")}`, all = byDay[key], list = all && all.filter(x => x.status !== "full").length ? all : null;
+      const key = `${state.calMonth}-${String(d).padStart(2, "0")}`, list = byDay[key];
+      const nOpen = list ? list.filter(x => x.status !== "full").length : 0;
       const wd = (first + d - 1) % 7;
       cells += list
-        ? `<button type="button" class="cd open ${key === state.calDay ? "sel" : ""} ${dayHasPick(key) ? "picked" : ""} ${wd === 0 || wd === 6 ? "we" : ""}" data-day="${key}"><b>${d}</b><i>${list.filter(x => x.status !== "full").length} 個時段</i></button>`
+        ? `<button type="button" class="cd open ${nOpen ? "" : "fullday"} ${key === state.calDay ? "sel" : ""} ${dayHasPick(key) ? "picked" : ""} ${wd === 0 || wd === 6 ? "we" : ""}" data-day="${key}"><b>${d}</b><i>${nOpen ? nOpen + " 個時段" : "約滿"}</i></button>`
         : `<span class="cd off"><b>${d}</b></span>`;
     }
     $("#cal").innerHTML = `<div class="cal-h">
@@ -314,14 +316,14 @@ async function stepSlots() {
       <div class="cal-g">${cells}</div>`;
     $("#cal").querySelectorAll("[data-mv]").forEach(bt => bt.onclick = () => {
       state.calMonth = months[mi + +bt.dataset.mv]; const inMonth = days.find(d => d.startsWith(state.calMonth));
-      if (!state.calDay?.startsWith(state.calMonth)) state.calDay = inMonth; saveDraft(); drawAll();
+      if (!state.calDay?.startsWith(state.calMonth)) state.calDay = openDays.find(d => d.startsWith(state.calMonth)) || inMonth; saveDraft(); drawAll();
     });
     $("#cal").querySelectorAll("[data-day]").forEach(bt => bt.onclick = () => { state.calDay = bt.dataset.day; saveDraft(); drawAll();
       $("#dayTimes").scrollIntoView({ behavior: "smooth", block: "nearest" }); });
   };
   const drawTimes = () => {
     const list = byDay[state.calDay] || [];
-    $("#dayTimes").innerHTML = list.length ? `<div class="slot-day"><h4>${esc(slotLabel(list[0]).split("）")[0])}）可以選的時段</h4>
+    $("#dayTimes").innerHTML = list.length ? `<div class="slot-day"><h4>${esc(slotLabel(list[0]).split("）")[0])}）${list.some(x => x.status !== "full") ? "可以選的時段" : "已全部約滿"}</h4>
       <div class="slot-list">${list.map(x => { const i = state.picks.indexOf(x.id);
         if (x.status === "full") return `<button type="button" class="slot full" disabled>${esc(x.time)}<span class="tag">已約滿</span></button>`;
         return `<button type="button" class="slot ${i === 0 ? "p1" : i === 1 ? "p2" : ""}" data-id="${x.id}">${esc(x.time)}${i >= 0 ? `<span class="tag">${i === 0 ? "第一志願" : "第二志願"}</span>` : ""}</button>`; }).join("")}</div></div>` : "";
