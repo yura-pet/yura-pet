@@ -177,10 +177,9 @@
         <div class="grid2">
           <label class="fld"><span>總金額</span><input id="f_total" type="number" inputmode="numeric" min="0" placeholder="例：1680"></label>
           <div class="fld"><span>&nbsp;</span><button class="btn paid wide" id="payAll" type="button">✔ 付清</button></div>
-          <label class="fld"><span>訂金</span><input id="f_deposit" type="number" inputmode="numeric" min="0" placeholder="沒有訂金可留空"></label>
-          <label class="check box"><input type="checkbox" id="f_depositPaid"> 已收訂金</label>
-          <div class="fld"><span>尾款</span><div class="readout" id="balanceOut">—</div></div>
-          <label class="check box"><input type="checkbox" id="f_balancePaid"> 已收尾款</label>
+          <label class="check box full"><input type="checkbox" id="f_balancePaid"> 已付款（全額）</label>
+          <!-- 不收訂金：以下欄位保留給舊資料，畫面上不顯示 -->
+          <input id="f_deposit" type="hidden"><input type="checkbox" id="f_depositPaid" hidden><div id="balanceOut" hidden></div>
         </div>
         <small class="hint" id="paidAtOut"></small>
       </fieldset>
@@ -261,6 +260,6 @@
 <datalist id="dl_pets"></datalist>
 <input type="file" id="importFile" accept="application/json" class="hidden">
 <div class="toast" id="toast"></div>
-<script src="app.js?v=20261125d"></script>
+<script src="app.js?v=20261125e"></script>
 </body>
 </html>

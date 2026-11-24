@@ -371,7 +371,7 @@ function renderStats() {
   $("#statCards").innerHTML = [
     ["y", "預約數", list.length + " 筆", `已完成 ${list.filter(b => b.status === "done").length}・取消 ${all.length - list.length}`],
     ["b", "應收總額", money(sum(p => p.total || 0)), list.some(b => num(b.total) === null) ? `${list.filter(b => num(b.total) === null).length} 筆未填金額` : ""],
-    ["g", "已收金額", money(sum(p => p.received)), `訂金 ${money(depRecv)}・尾款 ${money(sum(p => p.received) - depRecv)}`],
+    ["g", "已收金額", money(sum(p => p.received)), `${P.filter(p => p.st === "paid").length} 筆已付款`],
     ["r", "未收金額", money(sum(p => p.outstanding)), `${P.filter(p => p.outstanding > 0).length} 筆`],
     ["p", "客人數", custs.length + " 位", `新客 ${newC}・回頭客 ${custs.length - newC}`],
     ["y", "平均客單價", money(list.length ? sum(p => p.total || 0) / Math.max(P.filter(p => p.total !== null).length, 1) : 0), ""]
@@ -496,7 +496,7 @@ function openBooking(b, preset = {}) {
   $("#f_ext").innerHTML = Object.entries(EXTS).map(([k, v]) => `<option value="${k}" ${String(x.ext || "") === k ? "selected" : ""}>${v}</option>`).join("");
   $("#extHint").textContent = "";
   $("#f_total").value = x.total ?? "";
-  $("#f_deposit").value = x.deposit ?? "";
+  $("#f_deposit").value = x.deposit ?? "";  // 舊資料才會有
   $("#f_depositPaid").checked = !!x.depositPaid;
   $("#f_balancePaid").checked = !!x.balancePaid;
   $("#f_note").value = x.note || "";
