@@ -51,5 +51,6 @@ service cloud.firestore {
     // 客人資料、似顏繪排程：只有你
     match /customers/{id} { allow read, write: if isAdmin(); }
     match /arts/{id} { allow read, write: if isAdmin(); }
+    match /photos/{id} { allow read, write: if isAdmin(); }
   }
 }

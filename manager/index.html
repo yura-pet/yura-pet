@@ -11,7 +11,7 @@
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icon-180.png">
 <title>Yura 預約管理</title>
-<link rel="stylesheet" href="app.css?v=20261124fb">
+<link rel="stylesheet" href="app.css?v=20261125c">
 </head>
 <body>
 <div class="bg-deco" aria-hidden="true"><span class="blob b1"></span><span class="blob b2"></span><span class="blob b3"></span></div>
@@ -185,7 +185,12 @@
         <small class="hint" id="paidAtOut"></small>
       </fieldset>
 
-      <label class="fld"><span>備註</span><textarea id="f_note" rows="3" placeholder="想問的問題、特殊狀況…"></textarea></label>
+      <label class="fld"><span>備註／客人填的資料</span><textarea id="f_note" rows="6" placeholder="想問的問題、想對牠說的話、特殊狀況…（可以直接把 LINE 的預約內容整段貼進來）"></textarea></label>
+      <div class="fld"><span>📷 毛孩照片</span>
+        <div class="photos" id="photoList"></div>
+        <label class="btn small soft photo-add">＋ 加照片<input type="file" id="photoInput" accept="image/*" multiple hidden></label>
+        <small class="hint" id="photoHint">照片會自動縮小後存起來（最多 6 張）。</small>
+      </div>
     </div>
     <div class="dlg-foot">
       <button class="btn danger" id="bkDel" type="button">刪除</button>
@@ -195,6 +200,9 @@
     </div>
   </form>
 </dialog>
+
+<!-- 看大圖 -->
+<dialog id="photoDlg" class="dlg photo-dlg"><form method="dialog"><img id="photoBig" alt="毛孩照片"><div class="dlg-foot"><button class="btn danger" type="button" id="photoDel">刪除這張</button><span class="spacer"></span><button class="btn" type="submit">關閉</button></div></form></dialog>
 
 <!-- 客人資料 -->
 <dialog id="custDlg" class="dlg">
@@ -253,6 +261,6 @@
 <datalist id="dl_pets"></datalist>
 <input type="file" id="importFile" accept="application/json" class="hidden">
 <div class="toast" id="toast"></div>
-<script src="app.js?v=20261125b"></script>
+<script src="app.js?v=20261125c"></script>
 </body>
 </html>

@@ -244,7 +244,7 @@ const hasArt = b => /似顏繪/.test(b.service || "");
 const durTag = b => { const n = minutesOf(b); return [n ? `⏱ ${n} 分鐘` : "", hasArt(b) ? "🎨 似顏繪" : ""].filter(Boolean).join("・"); };
 function bookingLine(b) {
   const p = pay(b);
-  return [durTag(b), b.service, b.ext ? `加時 ${b.ext} 分` : "", b.method, b.channel && "於" + b.channel].filter(Boolean).join("・") + ` <span class="badge ${p.st}">${p.label}</span>` +
+  return [durTag(b), b.photoCount ? `📷 ${b.photoCount}` : "", b.service, b.ext ? `加時 ${b.ext} 分` : "", b.method, b.channel && "於" + b.channel].filter(Boolean).join("・") + ` <span class="badge ${p.st}">${p.label}</span>` +
     (b.status !== "booked" ? ` <span class="badge st-${b.status}">${STATUS[b.status]}</span>` : "");
 }
 
@@ -398,6 +398,79 @@ function fillDays(keep) {
 $("#f_y").onchange = () => fillDays(); $("#f_m").onchange = () => fillDays();
 const formDate = () => `${$("#f_y").value}-${pad($("#f_m").value)}-${pad($("#f_d").value)}`;
 
+// ================= 照片（存在 photos/預約ID_編號，打開預約時才讀取） =================
+let photoState = { list: [], pending: [] }; // list: [{id,data}] 已存的；pending: [{data}] 還沒儲存的
+async function loadPhotos(bookingId) {
+  photoState = { list: [], pending: [] };
+  drawPhotos();
+  if (!bookingId) return;
+  if (mode !== "cloud") { photoState.list = JSON.parse(ls.get("yura_mgr_photos_" + bookingId) || "[]"); return drawPhotos(); }
+  $("#photoList").innerHTML = `<div class="ph-wait">讀取中…</div>`;
+  try {
+    const snap = await F.fs.getDocs(F.fs.query(F.fs.collection(F.db, "photos"), F.fs.where("bookingId", "==", bookingId)));
+    photoState.list = snap.docs.map(d => ({ id: d.id, data: d.data().data, at: d.data().createdAt || 0 })).sort((a, b) => a.at - b.at);
+  } catch (e) { toast("讀取照片失敗：" + (e.code === "permission-denied" ? "請更新 Firebase 規則（照片）" : e.message)); }
+  drawPhotos();
+}
+function drawPhotos() {
+  const all = [...photoState.list.map((p, i) => ({ ...p, k: "s" + i })), ...photoState.pending.map((p, i) => ({ ...p, k: "p" + i }))];
+  $("#photoList").innerHTML = all.map(p => `<img src="${p.data}" data-ph="${p.k}" alt="毛孩照片">`).join("");
+  $("#photoHint").textContent = photoState.pending.length ? `有 ${photoState.pending.length} 張新照片，按「儲存」才會存起來。` : "照片會自動縮小後存起來（最多 6 張）。";
+}
+function shrink(file, max = 1280, q = 0.8) {
+  return new Promise((res, rej) => {
+    const img = new Image(), url = URL.createObjectURL(file);
+    img.onload = () => {
+      let { width: w, height: h } = img; const r = Math.min(1, max / Math.max(w, h)); w = Math.round(w * r); h = Math.round(h * r);
+      const c = document.createElement("canvas"); c.width = w; c.height = h; c.getContext("2d").drawImage(img, 0, 0, w, h);
+      URL.revokeObjectURL(url);
+      let d = c.toDataURL("image/jpeg", q); while (d.length > 700000 && q > 0.4) { q -= 0.1; d = c.toDataURL("image/jpeg", q); }
+      res(d);
+    };
+    img.onerror = () => rej(new Error("這張照片打不開"));
+    img.src = url;
+  });
+}
+$("#photoInput").onchange = async e => {
+  const files = [...e.target.files]; e.target.value = "";
+  for (const f of files) {
+    if (photoState.list.length + photoState.pending.length >= 6) { toast("最多 6 張照片"); break; }
+    try { photoState.pending.push({ data: await shrink(f) }); } catch (err) { toast(err.message); }
+  }
+  drawPhotos();
+};
+let phOpen = null;
+$("#photoList").onclick = e => { const im = e.target.closest("[data-ph]"); if (!im) return; phOpen = im.dataset.ph; $("#photoBig").src = im.src; $("#photoDlg").showModal(); };
+$("#photoDel").onclick = async () => {
+  if (!phOpen || !confirm("刪除這張照片？")) return;
+  const i = +phOpen.slice(1);
+  if (phOpen[0] === "p") photoState.pending.splice(i, 1);
+  else { const ph = photoState.list[i];
+    try { if (mode === "cloud") await F.fs.deleteDoc(F.fs.doc(F.db, "photos", ph.id)); else { photoState.list.splice(i, 1); } } catch (err) { return toast("刪除失敗：" + err.message); }
+    if (mode === "cloud") photoState.list.splice(i, 1);
+    if (mode !== "cloud" && editing) ls.set("yura_mgr_photos_" + editing.id, JSON.stringify(photoState.list));
+  }
+  $("#photoDlg").close(); drawPhotos(); toast("已刪除照片");
+};
+async function savePhotos(bookingId) {
+  if (!photoState.pending.length) return 0;
+  const n = photoState.pending.length;
+  if (mode !== "cloud") {
+    photoState.list.push(...photoState.pending.map((p, i) => ({ id: bookingId + "_" + Date.now() + i, data: p.data })));
+    ls.set("yura_mgr_photos_" + bookingId, JSON.stringify(photoState.list));
+  } else {
+    for (const [i, p] of photoState.pending.entries()) {
+      const id = `${bookingId}_${Date.now().toString(36)}${i}`;
+      await F.fs.setDoc(F.fs.doc(F.db, "photos", id), { bookingId, data: p.data, createdAt: Date.now() });
+      photoState.list.push({ id, data: p.data });
+    }
+  }
+  photoState.pending = [];
+  const b = DB.bookings.find(x => x.id === bookingId);
+  if (b) { b.photoCount = photoState.list.length; if (mode === "cloud") await F.fs.updateDoc(F.fs.doc(F.db, "bookings", bookingId), { photoCount: b.photoCount }).catch(() => {}); persistLocal(); }
+  return n;
+}
+
 function openBooking(b, preset = {}) {
   editing = b ? { ...b } : null;
   const x = b || { date: preset.date || selDay, time: "", status: "booked", source: "", channel: "", method: "", ...preset };
@@ -419,6 +492,7 @@ function openBooking(b, preset = {}) {
   $("#f_depositPaid").checked = !!x.depositPaid;
   $("#f_balancePaid").checked = !!x.balancePaid;
   $("#f_note").value = x.note || "";
+  loadPhotos(b ? b.id : null);
   $("#bkDel").classList.toggle("hidden", !b);
   bkDlg.dataset.paidAt = x.paidAt || "";
   onCustomerInput(); updatePay();
@@ -487,6 +561,8 @@ $("#bkForm").onsubmit = async e => {
   try {
     if (isNew) await put("customers", c);
     await put("bookings", b);
+    let phSaved = 0;
+    try { phSaved = await savePhotos(b.id); } catch (e) { toast("照片儲存失敗：" + (e.code === "permission-denied" ? "請更新 Firebase 規則（照片）" : e.message)); }
     let artAdded = false;
     if (b.service.includes("似顏繪") && b.status !== "cancelled" && !DB.arts.some(a => a.bookingId === b.id)) {
       await put("arts", { id: uid(), bookingId: b.id, customerId: c.id, customerName: name, pet: b.pet, status: "queue", frame: "", due: "", photos: false, address: "", tracking: "", note: "", createdAt: Date.now() });
@@ -495,12 +571,15 @@ $("#bkForm").onsubmit = async e => {
     selDay = b.date;
     const d = parseYmd(b.date); view = new Date(d.getFullYear(), d.getMonth(), 1);
     render();
-    toast((isNew ? "已儲存，並建立新客人 ✨" : "已儲存 ✨") + (artAdded ? "　🎨 已加進似顏繪排程" : ""));
+    toast((isNew ? "已儲存，並建立新客人 ✨" : "已儲存 ✨") + (phSaved ? `　📷 存了 ${phSaved} 張照片` : "") + (artAdded ? "　🎨 已加進似顏繪排程" : ""));
   } catch {}
 };
 $("#bkDel").onclick = async () => {
   if (!editing || !confirm(`確定要刪除「${editing.pet}」${dLabel(editing.date)} ${editing.time} 的預約嗎？\n（如果只是客人取消，建議把狀態改成「已取消」）`)) return;
-  bkDlg.close(); await del("bookings", editing.id); toast("已刪除");
+  bkDlg.close();
+  for (const ph of photoState.list) { if (mode === "cloud") await F.fs.deleteDoc(F.fs.doc(F.db, "photos", ph.id)).catch(() => {}); }
+  if (mode !== "cloud") ls.del("yura_mgr_photos_" + editing.id);
+  await del("bookings", editing.id); toast("已刪除");
 };
 
 async function quickPayAll(id) {

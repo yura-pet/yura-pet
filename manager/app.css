@@ -261,3 +261,11 @@ input[type=search]{margin-bottom:6px}
 .badge.st-pending{background:#fff1cf;color:#94640f}
 .chip.st-pending{background:#fff1cf;color:#80600e;box-shadow:inset 3px 0 0 var(--yellow-deep)}
 .tab-cnt.alert{background:var(--danger);color:#fff}
+
+/* ---- 照片 ---- */
+.photos{display:flex;flex-wrap:wrap;gap:8px}
+.photos img{width:76px;height:76px;object-fit:cover;border-radius:12px;border:1px solid var(--line);cursor:pointer}
+.photos .ph-wait{width:76px;height:76px;border-radius:12px;background:var(--blue-soft);display:grid;place-items:center;font-size:12px;color:var(--muted)}
+.photo-add{align-self:flex-start;margin-top:4px}
+.photo-dlg img{display:block;max-width:100%;max-height:70vh;margin:0 auto;background:#000}
+.tag.ph{background:var(--purple-soft);color:var(--purple-deep)}
