@@ -1,7 +1,7 @@
 // 資料存取層
 // - 有填 Firebase 設定：可預約時段照「Yura 預約管理」後台的設定，客人送出的預約會直接存進後台
 // - 沒填：照 config.js 的固定時段，預約只透過 LINE 傳送
-import { CONFIG } from "./config.js?v=20261125b";
+import { CONFIG } from "./config.js?v=20261125d";
 
 export const isLive = !!(CONFIG.firebase && CONFIG.firebase.apiKey && CONFIG.firebase.projectId);
 export const isDemo = !isLive;
@@ -64,7 +64,8 @@ export async function listOpenSlots() {
     try { ({ c, taken } = await liveRules()); }
     catch (e) { console.warn("讀不到後台時段，改用固定時段", e); }
   }
-  const full = CONFIG.defaults.fullSlots || {}, hidden = CONFIG.defaults.hiddenSlots || {};
+  // 後台有設定：完全照後台；還沒設定：用 config.js
+  const full = c ? (c.full || {}) : (CONFIG.defaults.fullSlots || {}), hidden = c ? {} : (CONFIG.defaults.hiddenSlots || {});
   const out = [];
   for (let i = 0; i <= DAYS_AHEAD; i++) {
     const date = new Date(Date.now() + 8 * 3600e3 + i * 86400e3).toISOString().slice(0, 10);

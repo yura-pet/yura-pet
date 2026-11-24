@@ -19,7 +19,13 @@ const SERVICES = [
 ];
 const STATUS = { pending: "待確認", booked: "已預約", done: "已完成", cancelled: "已取消" };
 const WD5 = ["11:00", "14:00", "15:00", "19:00", "20:00"], WE2 = ["19:00", "20:00"];
-const DEFAULT_CFG = { id: "config01", weekly: { 0: WE2, 1: WD5, 2: WD5, 3: WD5, 4: WD5, 5: ["15:00", "19:00", "20:00"], 6: WE2 }, closed: {}, extra: {}, blocked: {} };
+let DEFAULT_CFG = { id: "config01", weekly: { 0: WE2, 1: WD5, 2: WD5, 3: WD5, 4: WD5, 5: ["15:00", "19:00", "20:00"], 6: WE2 }, closed: {}, extra: {}, blocked: {}, full: {} };
+// 從網站設定檔（config.js）帶入時段，前台和後台用同一份
+function cfgFromSite(C) {
+  const d = C.defaults || {}, o = d.weekdayOverride || {}, wk = {};
+  for (let i = 0; i < 7; i++) wk[i] = (o[i] || ((i === 0 || i === 6) ? d.weekendTimes : d.weekdayTimes) || []).slice();
+  return { id: "config01", weekly: wk, closed: {}, extra: {}, blocked: { ...(d.hiddenSlots || {}) }, full: { ...(d.fullSlots || {}) } };
+}
 const ART_STATUS = { queue: "排單中", drawing: "繪製中", ready: "完成待寄出", shipped: "已寄出" };
 const ART_ORDER = ["queue", "drawing", "ready", "shipped"];
 const FRAMES = ["大一點的框｜壓克力胡桃木", "小一點的框｜玻璃胡桃木", "小一點的框｜玻璃原木色"];
@@ -67,6 +73,7 @@ let F = null; // { fs, db, auth, au }
 async function firebase() {
   if (F) return F;
   const { CONFIG } = await import("../assets/js/config.js?v=" + Date.now().toString(36).slice(0, 6));
+  DEFAULT_CFG = cfgFromSite(CONFIG);
   if (!CONFIG.firebase || !CONFIG.firebase.apiKey) return null;
   const [app, fs, auth] = await Promise.all([import(FBV + "firebase-app.js"), import(FBV + "firebase-firestore.js"), import(FBV + "firebase-auth.js")]);
   const a = app.getApps().length ? app.getApp() : app.initializeApp(CONFIG.firebase);
@@ -95,6 +102,7 @@ async function loadAll() {
   const { fs, db } = F;
   const snaps = await Promise.all(KINDS.map(k => fs.getDocs(fs.collection(db, k))));
   KINDS.forEach((k, i) => DB[k] = snaps[i].docs.map(d => ({ ...d.data(), id: d.id })));
+  if (!DB.settings.length) { await put("settings", { ...DEFAULT_CFG }); } // 第一次登入：把網站目前的時段存進後台
   persistLocal(); render();
   setSync("已同步 " + nowHM());
   cleanupTaken().catch(() => {});
@@ -633,14 +641,15 @@ function dayTimes(date) {
   const extra = (c.extra[date] || []).filter(x => !base.includes(x));
   const blocked = c.blocked[date] || [];
   const closed = !!c.closed[date];
+  const full = (c.full || {})[date] || [];
   const taken = DB.bookings.filter(b => b.date === date && ["booked", "pending"].includes(b.status) && isTime(b.time)).map(b => b.time);
-  const open = closed ? [] : sortT([...base, ...extra]).filter(x => !blocked.includes(x) && !taken.includes(x));
-  return { base, extra, blocked, closed, taken, open };
+  const open = closed ? [] : sortT([...base, ...extra]).filter(x => !blocked.includes(x) && !taken.includes(x) && !full.includes(x));
+  return { base, extra, blocked, closed, taken, full, open };
 }
 async function saveCfg(next, msg) {
   const c = { ...cfg(), ...next, id: "config01" };
   const clean = o => Object.fromEntries(Object.entries(o).filter(([, v]) => v && (!Array.isArray(v) || v.length)));
-  c.closed = clean(c.closed); c.extra = clean(c.extra); c.blocked = clean(c.blocked);
+  c.closed = clean(c.closed); c.extra = clean(c.extra); c.blocked = clean(c.blocked); c.full = clean(c.full || {});
   try { await put("settings", c); toast(msg || "時段已更新 ✨"); $("#slotSaved").textContent = "已儲存 " + nowHM(); } catch {}
 }
 const timeSelect = (attrs, exclude = [], label = "＋ 加時段") =>
@@ -661,10 +670,10 @@ function renderSlots() {
     saveCfg({ weekly: w }, `週${WD[wd]} 已加開 ${sel.value}`);
   });
   const t = todayStr();
-  const dates = [...new Set([...Object.keys(c.closed), ...Object.keys(c.extra), ...Object.keys(c.blocked)])].filter(d => d >= t).sort();
+  const dates = [...new Set([...Object.keys(c.closed), ...Object.keys(c.extra), ...Object.keys(c.blocked), ...Object.keys(c.full || {})])].filter(d => d >= t).sort();
   $("#specialList").innerHTML = dates.length ? dates.map(d => {
     const x = dayTimes(d);
-    const parts = [x.closed ? "🚫 公休" : "", x.extra.length ? `＋加開 ${x.extra.join("、")}` : "", x.blocked.length ? `封鎖 ${x.blocked.join("、")}` : ""].filter(Boolean);
+    const parts = [x.closed ? "🚫 公休" : "", x.extra.length ? `＋加開 ${x.extra.join("、")}` : "", x.blocked.length ? `拿掉 ${x.blocked.join("、")}` : "", x.full.length ? `約滿 ${x.full.join("、")}` : ""].filter(Boolean);
     return `<div class="sp-row" data-goday="${d}"><b>${dLabel(d)}</b><span>${parts.join("｜")}</span></div>`;
   }).join("") : `<div class="empty">沒有特別設定，全部照每週固定時段</div>`;
 }
@@ -683,7 +692,7 @@ function renderDayCtl() {
     ${x.closed ? `<div class="closed-note">這天是公休，客人看不到任何時段。</div>` : `
     <div class="dc-box">
       <h4>這天的固定時段（週${WD[parseYmd(selDay).getDay()]}）</h4>
-      <div class="tchips">${x.base.length ? x.base.map(t => `<span class="tchip ${x.blocked.includes(t) ? "block" : ""} ${x.taken.includes(t) ? "taken" : ""}">${t}${x.taken.includes(t) ? "・已約" : ""}</span>`).join("") : `<span class="muted small">沒有固定時段</span>`}</div>
+      <div class="tchips">${x.base.length ? x.base.map(t => `<span class="tchip ${x.blocked.includes(t) ? "block" : ""} ${x.taken.includes(t) || x.full.includes(t) ? "taken" : ""}">${t}${x.taken.includes(t) ? "・已約" : x.full.includes(t) ? "・約滿" : ""}</span>`).join("") : `<span class="muted small">沒有固定時段</span>`}</div>
     </div>
     <div class="dc-box extra">
       <h4>＋ 本日加開時段（除了固定時段之外，額外多開放的時間）</h4>
@@ -694,14 +703,22 @@ function renderDayCtl() {
       <h4>🚫 本日封鎖時段（臨時抽掉單一時段，其他時段照常開放）</h4>
       <div class="tchips">${x.blocked.map(t => `<span class="tchip block">${t}<button type="button" data-bldel="${t}" aria-label="取消封鎖">✕</button></span>`).join("")}
         ${x.base.filter(t => !x.blocked.includes(t)).length ? `<select class="tadd" id="dcBlock"><option value="">＋ 封鎖時段</option>${x.base.filter(t => !x.blocked.includes(t)).map(t => `<option>${t}</option>`).join("")}</select>` : ""}</div>
+    </div>
+    <div class="dc-box">
+      <h4>✖ 標示已約滿（客人看到劃掉、寫「已約滿」）</h4>
+      <div class="tchips">${x.full.map(t => `<span class="tchip block">${t}<button type="button" data-fudel="${t}" aria-label="取消約滿">✕</button></span>`).join("")}
+        ${[...x.base, ...x.extra].filter(t => !x.full.includes(t) && !x.blocked.includes(t)).length ? `<select class="tadd" id="dcFull"><option value="">＋ 約滿時段</option>${sortT([...x.base, ...x.extra]).filter(t => !x.full.includes(t) && !x.blocked.includes(t)).map(t => `<option>${t}</option>`).join("")}</select>` : ""}</div>
+      <small class="hint">已經登記在後台的預約，時段會自動變成已約滿，不用另外標。</small>
     </div>`}`;
   const d = selDay;
-  const set = (k, v) => { const o = { ...c[k] }; o[d] = v; return { [k]: o }; };
+  const set = (k, v) => { const o = { ...(c[k] || {}) }; o[d] = v; return { [k]: o }; };
   $("#dcClose") && ($("#dcClose").onclick = () => saveCfg(set("closed", true), `${dLabel(d)} 設為公休`));
   $("#dcOpen") && ($("#dcOpen").onclick = () => saveCfg(set("closed", false), `${dLabel(d)} 已取消公休`));
   $("#dcExtra") && ($("#dcExtra").onchange = e => e.target.value && saveCfg(set("extra", sortT([...(c.extra[d] || []), e.target.value])), `${dLabel(d)} 加開 ${e.target.value}`));
   $("#dcBlock") && ($("#dcBlock").onchange = e => e.target.value && saveCfg(set("blocked", sortT([...(c.blocked[d] || []), e.target.value])), `${dLabel(d)} 封鎖 ${e.target.value}`));
   box.querySelectorAll("[data-exdel]").forEach(b => b.onclick = () => saveCfg(set("extra", (c.extra[d] || []).filter(t => t !== b.dataset.exdel)), "已取消加開"));
+  $("#dcFull") && ($("#dcFull").onchange = e => e.target.value && saveCfg(set("full", sortT([...((c.full || {})[d] || []), e.target.value])), `${dLabel(d)} ${e.target.value} 標示已約滿`));
+  box.querySelectorAll("[data-fudel]").forEach(b => b.onclick = () => saveCfg(set("full", ((c.full || {})[d] || []).filter(t => t !== b.dataset.fudel)), "已取消約滿"));
   box.querySelectorAll("[data-bldel]").forEach(b => b.onclick = () => saveCfg(set("blocked", (c.blocked[d] || []).filter(t => t !== b.dataset.bldel)), "已取消封鎖"));
 }
 
