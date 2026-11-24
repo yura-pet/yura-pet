@@ -97,7 +97,7 @@ async function remoteSlots(now) {
     if (!r.ok || !r.data || !r.data.weekly) return null;
     const { weekly, closed = {}, extra = {}, blocked = {}, taken = [] } = r.data;
     const takenSet = new Set(taken), out = [], byId = {};
-    for (let i = 0; i <= 45; i++) {
+    for (let i = 0; i <= 75; i++) {
       const date = new Date(Date.now() + 8 * 3600e3 + i * 86400e3).toISOString().slice(0, 10);
       if (closed[date]) continue;
       const wd = new Date(date + "T00:00:00Z").getUTCDay();
