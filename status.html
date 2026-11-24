@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#f8f1f4">
 <meta name="robots" content="noindex">
 <title>Yura｜查詢預約</title>
-<link rel="stylesheet" href="assets/style.css">
+<link rel="stylesheet" href="assets/style.css?v=20261124c">
 </head>
 <body>
 <main class="wrap">
@@ -21,9 +21,9 @@
   </section>
 </main>
 <script type="module">
-import { chrome, esc, lineHref } from "./assets/js/common.js";
-import { STATUS, money } from "./assets/js/services.js";
-import { getBooking, getSettings, fmtCode, normCode } from "./assets/js/db.js";
+import { chrome, esc, lineHref } from "./assets/js/common.js?v=20261124c";
+import { STATUS, money } from "./assets/js/services.js?v=20261124c";
+import { getBooking, getSettings, fmtCode, normCode } from "./assets/js/db.js?v=20261124c";
 chrome("status");
 const out = document.getElementById("out"), input = document.getElementById("code");
 const ORDER = ["new", "confirmed", "paid", "done"];
