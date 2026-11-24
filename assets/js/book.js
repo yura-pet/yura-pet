@@ -1,6 +1,6 @@
-import { chrome, esc, toast, copyText, lineHref, lineMessageHref } from "./common.js?v=20261125d";
-import { SERVICES, SERVICE_ORDER, money } from "./services.js?v=20261125d";
-import { getSettings, listOpenSlots, createBooking, slotLabel } from "./db.js?v=20261125d";
+import { chrome, esc, toast, copyText, lineHref, lineMessageHref } from "./common.js?v=20261125f";
+import { SERVICES, SERVICE_ORDER, money } from "./services.js?v=20261125f";
+import { getSettings, listOpenSlots, createBooking, slotLabel } from "./db.js?v=20261125f";
 
 chrome("book", { cta: false });
 
@@ -189,6 +189,8 @@ function stepDetails() {
     <div class="form-grid" id="fields"></div>
     <h3 style="margin-top:24px">聯絡方式</h3>
     <div class="form-grid">
+      <div class="field full"><label for="c_heard">你是怎麼知道 Yura 的？<span class="req">*</span></label>
+        <select id="c_heard"><option value="">請選擇</option><option ${state.customer.heard === "Instagram" ? "selected" : ""}>Instagram</option><option ${state.customer.heard === "Threads" ? "selected" : ""}>Threads</option><option ${state.customer.heard === "朋友介紹" ? "selected" : ""}>朋友介紹</option><option ${state.customer.heard === "Google 搜尋" ? "selected" : ""}>Google 搜尋</option><option ${state.customer.heard === "Facebook" ? "selected" : ""}>Facebook</option><option ${state.customer.heard === "LINE" ? "selected" : ""}>LINE</option><option ${state.customer.heard === "其他" ? "selected" : ""}>其他</option></select></div>
       <div class="field full"><label for="c_email">Email<span class="req">*</span></label><input type="email" id="c_email" value="${esc(state.customer.email || "")}" autocomplete="email" inputmode="email" placeholder="example@gmail.com">
         <div class="hint">萬一 LINE 聯絡不上，我還能用 Email 找到你。</div></div>
     </div>
@@ -229,6 +231,7 @@ function stepDetails() {
     if (r.checked && a && a.group) s.addons.filter(x => x.group === a.group && x.key !== a.key).forEach(x => {
       state.addons.delete(x.key); const el = stage.querySelector(`input[name=addon][value="${x.key}"]`); if (el) el.checked = false; });
     r.checked ? state.addons.add(r.value) : state.addons.delete(r.value); saveDraft(); drawFields(); drawSum(); });
+  $("#c_heard").onchange = e => { state.customer.heard = e.target.value; e.target.classList.remove("invalid"); saveDraft(); };
   $("#c_email").oninput = e => { state.customer.email = e.target.value; e.target.classList.remove("invalid"); saveDraft(); };
   drawFields(); drawSum();
 
@@ -238,6 +241,7 @@ function stepDetails() {
     if (s.methods && !state.method) problems.push([".choices.inline", "請選擇溝通方式"]);
     for (const f of visibleFields()) if (f.required && !String(state.values[f.key] || "").trim()) problems.push(["#f_" + f.key, `請填寫「${f.label}」`]);
     petList().forEach((p, i) => { if (!p.name.trim()) problems.push(["#pet_" + i, `請填寫寵物 ${i + 1} 的名字`]); });
+    if (!state.customer.heard) problems.push(["#c_heard", "請選擇你是怎麼知道 Yura 的"]);
     const em = (state.customer.email || "").trim();
     if (!em) problems.push(["#c_email", "請填寫 Email"]);
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)) problems.push(["#c_email", "Email 格式好像不對，請再確認一下"]);
@@ -366,6 +370,7 @@ function rows() {
     if (f.type === "pets") { petList().forEach((p, i) => r.push([`寵物 ${i + 1}`, `${p.name.trim()}${petText(p) ? "（" + petText(p) + "）" : ""}`])); return; }
     const v = String(state.values[f.key] || "").trim(); if (v) r.push([f.label.replace(/^\d+\.\s*/, ""), v]);
   });
+  if (state.customer.heard) r.push(["怎麼知道 Yura", state.customer.heard]);
   r.push(["Email", (state.customer.email || "").trim()]);
   if (hasSlotStep()) {
     const labels = state.picks.map((id, i) => `${i === 0 ? "第一志願" : "第二志願"}：${slotLabel(slots.find(x => x.id === id))}`);
@@ -406,7 +411,7 @@ async function submit() {
       ...petList().map((p, i) => ({ key: "pet" + (i + 1), label: `寵物 ${i + 1}`, value: `${p.name.trim()}${petText(p) ? "（" + petText(p) + "）" : ""}`.slice(0, 300) })),
       ...visibleFields().filter(f => f.type !== "pets").map(f => ({ key: f.key, label: f.label, value: String(state.values[f.key] || "").trim().slice(0, 3000) }))
     ].filter(x => x.value),
-    customer: { name: String(state.values.ownerName || "").trim().slice(0, 100), email: (state.customer.email || "").trim().slice(0, 200) },
+    customer: { name: String(state.values.ownerName || "").trim().slice(0, 100), email: (state.customer.email || "").trim().slice(0, 200), heard: state.customer.heard || "" },
     slotIds: hasSlotStep() ? [...state.picks] : [],
     slots: hasSlotStep() ? state.picks.map(id => slots.find(y => y.id === id)).filter(Boolean).map(x => ({ date: x.date, time: x.time })) : [],
     slotLabels: hasSlotStep() ? state.picks.map(id => slotLabel(slots.find(x => x.id === id))) : [],

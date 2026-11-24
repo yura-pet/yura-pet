@@ -3,7 +3,7 @@
 "use strict";
 
 // ================= 選項（要改選項就改這裡） =================
-const SOURCES  = ["官方LINE", "IG", "介紹", "網站預約"];
+const SOURCES  = ["官方LINE", "IG", "介紹", "Instagram", "Threads", "朋友介紹", "Google 搜尋", "Facebook", "LINE", "網站預約", "其他"];
 const CHANNELS = ["官方LINE", "IG"];
 const METHODS  = ["文字", "語音", "視訊"];
 // 加時（價錢給你參考，總金額請自己填）
@@ -102,10 +102,24 @@ async function loadAll() {
   const { fs, db } = F;
   const snaps = await Promise.all(KINDS.map(k => fs.getDocs(fs.collection(db, k))));
   KINDS.forEach((k, i) => DB[k] = snaps[i].docs.map(d => ({ ...d.data(), id: d.id })));
+  await linkWebBookings();
   if (!DB.settings.length) { await put("settings", { ...DEFAULT_CFG }); } // 第一次登入：把網站目前的時段存進後台
   persistLocal(); render();
   setSync("已同步 " + nowHM());
   cleanupTaken().catch(() => {});
+}
+// 網站來的預約：自動找到或建立客人資料，把同一位客人的預約都連在一起
+async function linkWebBookings() {
+  for (const b of DB.bookings.filter(x => x.web && !x.customerId)) {
+    const email = (b.contact || "").trim().toLowerCase();
+    let c = DB.customers.find(x => email && (x.contact || "").trim().toLowerCase() === email)
+         || DB.customers.find(x => (x.name || "").trim() === (b.customerName || "").trim());
+    if (!c) {
+      c = { id: uid(), name: (b.customerName || email || "網站客人").trim(), source: b.source || "網站預約", contact: b.contact || "", note: "", createdAt: Date.now() };
+      await put("customers", c);
+    }
+    await put("bookings", { ...b, customerId: c.id, customerName: c.name });
+  }
 }
 // 清掉沒有對應預約的「已預約時段」（例如客人送出失敗、預約被刪掉）
 async function cleanupTaken() {
@@ -185,6 +199,7 @@ async function boot() {
       const fresh = snap.docs.map(d => ({ ...d.data(), id: d.id }));
       const newOnes = fresh.filter(b => b.status === "pending" && !DB.bookings.some(x => x.id === b.id));
       DB.bookings = fresh; persistLocal();
+      if (newOnes.length) linkWebBookings().catch(() => {});
       if (!bkDlg.open && !custDlg.open && !$("#artDlg").open) render();
       if (newOnes.length) toast(`🔔 有 ${newOnes.length} 筆新的網站預約！`);
     }, () => {});

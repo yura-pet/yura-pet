@@ -1,7 +1,7 @@
 // 資料存取層
 // - 有填 Firebase 設定：可預約時段照「Yura 預約管理」後台的設定，客人送出的預約會直接存進後台
 // - 沒填：照 config.js 的固定時段，預約只透過 LINE 傳送
-import { CONFIG } from "./config.js?v=20261125d";
+import { CONFIG } from "./config.js?v=20261125f";
 
 export const isLive = !!(CONFIG.firebase && CONFIG.firebase.apiKey && CONFIG.firebase.projectId);
 export const isDemo = !isLive;
@@ -108,6 +108,7 @@ export async function createBooking(data) {
     data.customTimes ? `自己提供的時間：${s(data.customTimes, 500)}` : "",
     (data.addons || []).length ? `加購：${data.addons.map(a => s(a.label, 60)).join("、")}` : "",
     `預估金額：NT$${Number(data.total || 0).toLocaleString("en-US")}`,
+    data.customer && data.customer.heard ? `怎麼知道 Yura：${s(data.customer.heard, 30)}` : "",
     data.customer && data.customer.email ? `Email：${s(data.customer.email, 200)}` : ""
   ].filter(Boolean).join("\n").slice(0, 6000);
   const owner = ((data.fields || []).find(f => f.key === "ownerName") || {}).value || "";
@@ -116,7 +117,7 @@ export async function createBooking(data) {
     customerName: s(owner || (data.customer || {}).email || "網站預約", 100), contact: s((data.customer || {}).email, 200),
     pet: s(data.petName, 200) || "（未填）",
     service: `${s(data.serviceName, 40)}｜${s(data.planLabel, 80)}`,
-    source: "網站預約", channel: "官方LINE", method: s(data.method, 20), ext: ext ? ext.key.replace("ext", "") : "",
+    source: s((data.customer || {}).heard, 30) || "網站預約", channel: "官方LINE", method: s(data.method, 20), ext: ext ? ext.key.replace("ext", "") : "",
     date: pick ? pick.date : twToday(), time: pick ? pick.time : "待安排",
     total: null, deposit: null, depositPaid: false, balancePaid: false, paidAt: "", note
   };
