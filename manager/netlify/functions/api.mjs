@@ -26,7 +26,8 @@ const KINDS = { bookings: "b/", customers: "c/", arts: "a/", settings: "s/" };
 const SETTINGS_ID = "config01";
 // 每週固定時段的預設值（0 = 週日）
 const WD5 = ["11:00", "14:00", "15:00", "19:00", "20:00"], WE2 = ["19:00", "20:00"];
-const DEFAULT_WEEKLY = { 0: WE2, 1: WD5, 2: WD5, 3: WD5, 4: WD5, 5: WD5, 6: WE2 };
+const FRI = ["14:00", "15:00", "19:00", "20:00"]; // 週五 14:00 以後才開放
+const DEFAULT_WEEKLY = { 0: WE2, 1: WD5, 2: WD5, 3: WD5, 4: WD5, 5: FRI, 6: WE2 };
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/, TIME_RE = /^\d{2}:\d{2}$/;
 const twToday = () => new Date(Date.now() + 8 * 3600e3).toISOString().slice(0, 10);
 const str = (v, n) => String(v ?? "").trim().slice(0, n);

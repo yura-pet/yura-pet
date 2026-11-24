@@ -19,7 +19,7 @@ const SERVICES = [
 ];
 const STATUS = { pending: "待確認", booked: "已預約", done: "已完成", cancelled: "已取消" };
 const WD5 = ["11:00", "14:00", "15:00", "19:00", "20:00"], WE2 = ["19:00", "20:00"];
-const DEFAULT_CFG = { id: "config01", weekly: { 0: WE2, 1: WD5, 2: WD5, 3: WD5, 4: WD5, 5: WD5, 6: WE2 }, closed: {}, extra: {}, blocked: {} };
+const DEFAULT_CFG = { id: "config01", weekly: { 0: WE2, 1: WD5, 2: WD5, 3: WD5, 4: WD5, 5: ["14:00", "15:00", "19:00", "20:00"], 6: WE2 }, closed: {}, extra: {}, blocked: {} };
 const ART_STATUS = { queue: "排單中", drawing: "繪製中", ready: "完成待寄出", shipped: "已寄出" };
 const ART_ORDER = ["queue", "drawing", "ready", "shipped"];
 const FRAMES = ["大一點的框｜壓克力胡桃木", "小一點的框｜玻璃胡桃木", "小一點的框｜玻璃原木色"];
