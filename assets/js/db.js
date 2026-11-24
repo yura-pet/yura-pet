@@ -103,7 +103,7 @@ async function remoteSlots(now) {
       const wd = new Date(date + "T00:00:00Z").getUTCDay();
       const times = [...new Set([...(weekly[wd] || []), ...(extra[date] || [])])].sort();
       for (const time of times) {
-        if ((blocked[date] || []).includes(time) || takenSet.has(date + " " + time)) continue;
+        if ((blocked[date] || []).includes(time) || takenSet.has(date + " " + time) || ((CONFIG.defaults.hiddenSlots || {})[date] || []).includes(time)) continue;
         const at = slotAt(date, time); if (at <= now) continue;
         const id = date.replace(/-/g, "") + time.replace(":", "");
         out.push({ id, date, time, at, status: "open" }); byId[id] = { date, time };
