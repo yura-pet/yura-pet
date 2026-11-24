@@ -41,8 +41,9 @@ const LS = {
   get(k, d) { try { return JSON.parse(localStorage.getItem("yura_demo_" + k)) ?? d; } catch { return d; } },
   set(k, v) { try { localStorage.setItem("yura_demo_" + k, JSON.stringify(v)); } catch {} window.dispatchEvent(new Event("yura-demo-change")); }
 };
-const SEED_VERSION = 4;
-export const timesFor = date => { const wd = new Date(date + "T00:00:00Z").getUTCDay(); return (wd === 0 || wd === 6) ? CONFIG.defaults.weekendTimes : CONFIG.defaults.weekdayTimes; };
+const SEED_VERSION = 5;
+export const timesFor = date => { const wd = new Date(date + "T00:00:00Z").getUTCDay(); const o = CONFIG.defaults.weekdayOverride || {};
+  return o[wd] || ((wd === 0 || wd === 6) ? CONFIG.defaults.weekendTimes : CONFIG.defaults.weekdayTimes); };
 function demoSeedSlots() {
   if (LS.get("seeded", 0) === SEED_VERSION) return;
   // 保留客人已經選走的時段，其他依照每天固定時段重新產生
