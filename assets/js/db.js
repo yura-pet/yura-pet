@@ -1,5 +1,5 @@
 // 資料存取層：有 Firebase 設定就用 Firebase，沒有就用「示範模式」（瀏覽器 localStorage）
-import { CONFIG } from "./config.js?v=20261124c";
+import { CONFIG } from "./config.js?v=20261124d";
 
 export const isDemo = !(CONFIG.firebase && CONFIG.firebase.apiKey && CONFIG.firebase.projectId);
 
