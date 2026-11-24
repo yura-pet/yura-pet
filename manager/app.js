@@ -233,9 +233,18 @@ function render() {
   $("#dl_customers").innerHTML = DB.customers.map(c => `<option value="${esc(c.name)}">`).join("");
 }
 
+// 溝通總長度（方案分鐘＋加時）
+function minutesOf(b) {
+  const sv = b.service || "";
+  const m = sv.match(/(\d+)\s*分鐘/);
+  let base = m ? +m[1] : /三寵|3 隻/.test(sv) ? 40 : /多寵|雙寵|2 隻/.test(sv) ? 30 : /離世/.test(sv) ? 30 : /單寵|單次溝通|一般溝通/.test(sv) ? 20 : 0;
+  return base ? base + (+b.ext || 0) : 0;
+}
+const hasArt = b => /似顏繪/.test(b.service || "");
+const durTag = b => { const n = minutesOf(b); return [n ? `⏱ ${n} 分鐘` : "", hasArt(b) ? "🎨 似顏繪" : ""].filter(Boolean).join("・"); };
 function bookingLine(b) {
   const p = pay(b);
-  return [b.service, b.ext ? `加時 ${b.ext} 分` : "", b.method, b.channel && "於" + b.channel].filter(Boolean).join("・") + ` <span class="badge ${p.st}">${p.label}</span>` +
+  return [durTag(b), b.service, b.ext ? `加時 ${b.ext} 分` : "", b.method, b.channel && "於" + b.channel].filter(Boolean).join("・") + ` <span class="badge ${p.st}">${p.label}</span>` +
     (b.status !== "booked" ? ` <span class="badge st-${b.status}">${STATUS[b.status]}</span>` : "");
 }
 
@@ -251,6 +260,7 @@ function renderToday() {
     <button type="button" class="tcard ${b === nextB ? "next" : ""} ${b.time < now && b !== nextB ? "past" : ""} ${b.status === "cancelled" ? "cancelled" : ""}" data-bk="${b.id}">
       <div class="tt">${esc(b.time)}</div>
       <div class="ti"><b>${esc(b.pet)}｜${esc(custName(b))}</b><span>${esc(b.service)}${b.method ? "・" + esc(b.method) : ""}</span>
+      <span>${esc(durTag(b))}</span>
       <span>${b === nextB ? "⏰ 下一個" : ""} ${pay(b).label}</span></div>
     </button>`).join("") : `<div class="empty">今天沒有預約，好好休息 ☕</div>`;
 }
