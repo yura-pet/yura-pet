@@ -1,6 +1,6 @@
-import { chrome, esc, toast, copyText, lineHref, lineMessageHref } from "./common.js";
-import { SERVICES, SERVICE_ORDER, money } from "./services.js";
-import { getSettings, listOpenSlots, createBooking, slotLabel } from "./db.js";
+import { chrome, esc, toast, copyText, lineHref, lineMessageHref } from "./common.js?v=20261124c";
+import { SERVICES, SERVICE_ORDER, money } from "./services.js?v=20261124c";
+import { getSettings, listOpenSlots, createBooking, slotLabel } from "./db.js?v=20261124c";
 
 chrome("book", { cta: false });
 

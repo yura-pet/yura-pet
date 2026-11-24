@@ -1,6 +1,6 @@
-import { chrome, esc, toast, copyText } from "./common.js";
-import { SERVICES, SERVICE_ORDER, STATUS, money } from "./services.js";
-import { timesFor, isDemo, onAdmin, adminLogin, adminLogout, watchBookings, watchSlots, adminWrite, getSettings, saveSettings, slotAt, slotLabel, fmtCode, resetDemo } from "./db.js";
+import { chrome, esc, toast, copyText } from "./common.js?v=20261124c";
+import { SERVICES, SERVICE_ORDER, STATUS, money } from "./services.js?v=20261124c";
+import { timesFor, isDemo, onAdmin, adminLogin, adminLogout, watchBookings, watchSlots, adminWrite, getSettings, saveSettings, slotAt, slotLabel, fmtCode, resetDemo } from "./db.js?v=20261124c";
 
 chrome("admin", { cta: false });
 const $ = s => document.querySelector(s);

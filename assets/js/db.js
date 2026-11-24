@@ -1,5 +1,5 @@
 // 資料存取層：有 Firebase 設定就用 Firebase，沒有就用「示範模式」（瀏覽器 localStorage）
-import { CONFIG } from "./config.js";
+import { CONFIG } from "./config.js?v=20261124c";
 
 export const isDemo = !(CONFIG.firebase && CONFIG.firebase.apiKey && CONFIG.firebase.projectId);
 
@@ -129,8 +129,8 @@ export async function listOpenSlots() {
     const snap = await fs.getDocs(q);
     arr = snap.docs.map(d => ({ id: d.id, ...d.data() }));
   }
-  const full = CONFIG.defaults.fullSlots || {};
-  return arr.filter(s => s.status === "open" && s.at > now)
+  const full = CONFIG.defaults.fullSlots || {}, hidden = CONFIG.defaults.hiddenSlots || {};
+  return arr.filter(s => s.status === "open" && s.at > now && !(hidden[s.date] || []).includes(s.time))
     .map(s => (full[s.date] || []).includes(s.time) ? { ...s, status: "full" } : s)
     .sort((a, b) => a.at - b.at);
 }
