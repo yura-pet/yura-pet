@@ -48,6 +48,13 @@ export const CONFIG = {
     },
     closedMessage: "目前暫停開放線上預約，請先到 LINE 詢問 🙏",
     announcement: "",
+    // 匯款資訊：客人送出預約後會直接看到
+    bank: {
+      name: "台新銀行",
+      code: "812",
+      account: "28881004893882",
+      richart: "https://mobile.richart.tw/TSDIB_RichartWeb/RC04/RC040300?token=8A0B4681297A93B4DC6FB4D553667015"
+    },
     paymentInfo: "時間確認後，我會在 LINE 提供付款資訊。完成全額付款後，才視為預約成功 ✨"
   }
 };

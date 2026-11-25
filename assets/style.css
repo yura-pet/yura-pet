@@ -283,3 +283,11 @@ a.plan-row:hover{background:rgba(255,240,231,.7)}
 .cd.fullday b{text-decoration:line-through}
 .cd.fullday i{color:#b0605f;font-weight:700}
 .cd.fullday.sel{background:#d8d9df!important;color:#5b5f6e}
+
+/* ---------- 匯款資訊 ---------- */
+.pay-box{margin-top:16px;padding:16px 18px;border-radius:20px;background:#fff;border:2px solid var(--pink);display:grid;gap:10px}
+.pay-box h3{margin:0}
+.pay-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:16px}
+.pay-row span{color:var(--muted);min-width:40px}
+.pay-row .acct{font-size:20px;letter-spacing:.04em;font-variant-numeric:tabular-nums}
+.pay-box .muted{margin:0}

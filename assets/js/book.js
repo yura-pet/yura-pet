@@ -1,6 +1,6 @@
-import { chrome, esc, toast, copyText, lineHref, lineMessageHref } from "./common.js?v=20261125g";
-import { SERVICES, SERVICE_ORDER, money } from "./services.js?v=20261125g";
-import { getSettings, listOpenSlots, createBooking, slotLabel } from "./db.js?v=20261125g";
+import { chrome, esc, toast, copyText, lineHref, lineMessageHref } from "./common.js?v=20261126b";
+import { SERVICES, SERVICE_ORDER, money } from "./services.js?v=20261126b";
+import { getSettings, listOpenSlots, createBooking, slotLabel } from "./db.js?v=20261126b";
 
 chrome("book", { cta: false });
 
@@ -444,6 +444,19 @@ async function submit() {
 }
 
 // ---------- Step 5 完成 ----------
+function bankHtml() {
+  const b = settings.bank;
+  if (!b || !b.account) return "";
+  return `<div class="pay-box">
+    <h3>💳 匯款資訊</h3>
+    <div class="pay-row"><span>銀行</span><b>${esc(b.name)}（${esc(b.code)}）</b></div>
+    <div class="pay-row"><span>帳號</span><b class="acct">${esc(b.account)}</b><button class="btn small" id="copyAcct" type="button">複製帳號</button></div>
+    <div class="pay-row"><span>金額</span><b class="emph">${money(total())}</b></div>
+    ${b.richart ? `<a class="btn primary" href="${esc(b.richart)}" target="_blank" rel="noopener">用 Richart App 轉帳（自動帶入帳號）</a>` : ""}
+    <p class="muted">匯款完成後，請在 LINE 告訴我<b>帳號後五碼</b>，確認後就預約成功 ✨<br>預約時間以我在 LINE 確認為準。</p>
+  </div>`;
+}
+
 function stepDone() {
   const text = ["【Yura 線上預約】", "", ...state.summary.map(([k, v]) => `${k}：${v}`), `預估金額：${money(total())}`, "", "毛孩照片會另外傳送。"].join("\n");
   const h = lineHref(settings);
@@ -452,14 +465,17 @@ function stepDone() {
     <p class="center">已經收到你的預約了，謝謝你 ✨</p>
     <div class="note warn"><b>最後一步：</b>${send
       ? "按下面的「傳到 LINE」，LINE 會自動打開並幫你填好預約資料，<b>直接按送出</b>就可以了。接著再<b>傳毛孩照片</b>給我。"
-      : "請按下面的按鈕複製預約資料，回到 LINE 貼給我，並且<b>一起傳毛孩照片</b>。"} 我確認時段後會通知你付款。</div>
+      : "請按下面的按鈕複製預約資料，回到 LINE 貼給我，並且<b>一起傳毛孩照片</b>。"}</div>
     <div class="row-btns">
       ${send ? `<a class="btn line big" href="${send}" target="_blank" rel="noopener">📩 傳到 LINE</a>` : ""}
       <button class="btn ${send ? "" : "primary big"}" id="copy" type="button">${send ? "LINE 沒有自動填好？改用複製" : "複製預約資料"}</button>
       ${!send && h ? `<a class="btn line big" href="${h}" target="_blank" rel="noopener">開啟 LINE</a>` : ""}
     </div>
+    ${bankHtml()}
     <div class="note">📷 記得準備：${svc().prepare.map(esc).join("；")}</div>
     <div class="row-btns"><a class="btn ghost" href="index.html">回到首頁</a></div>`;
+  const ca = $("#copyAcct");
+  if (ca) ca.onclick = async () => toast(await copyText(settings.bank.account) ? "帳號已複製 ✨" : "複製失敗，請手動輸入帳號");
   $("#copy").onclick = async () => {
     const ok = await copyText(text);
     toast(ok ? "已複製 ✨ 回到 LINE 直接貼上就可以了" : "複製失敗，請截圖這個畫面傳給我");
