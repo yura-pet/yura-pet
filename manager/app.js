@@ -397,14 +397,14 @@ function renderStats() {
     ["y", "平均客單價", money(list.length ? sum(p => p.total || 0) / Math.max(P.filter(p => p.total !== null).length, 1) : 0), ""]
   ].map(([c, l, v, sub]) => `<div class="sc ${c}"><span>${l}</span><b>${v}</b>${sub ? `<span>${sub}</span>` : ""}</div>`).join("");
 
-  const group = (title, keyFn) => {
-    const g = {};
+  const group = (title, keyFn, always = []) => {
+    const g = {}; always.forEach(k => g[k] = { n: 0, amt: 0 });
     list.forEach(b => { const k = keyFn(b) || "未填"; (g[k] ||= { n: 0, amt: 0 }); g[k].n++; g[k].amt += pay(b).total || 0; });
     const arr = Object.entries(g).sort((a, b) => b[1].n - a[1].n);
     const max = Math.max(1, ...arr.map(x => x[1].n));
-    return `<div class="bd"><h4>${title}</h4>${arr.length ? arr.map(([k, v]) => `<div class="bar"><span>${esc(k)}</span><span class="v">${v.n} 筆・${money(v.amt)}</span><div class="tr"><div class="fill" style="width:${v.n / max * 100}%"></div></div></div>`).join("") : `<div class="muted small">沒有資料</div>`}</div>`;
+    return `<div class="bd"><h4>${title}</h4>${arr.length ? arr.map(([k, v]) => `<div class="bar"><span>${esc(k)}</span><span class="v">${v.n} 筆${v.n ? "・" + money(v.amt) : ""}</span><div class="tr"><div class="fill" style="width:${v.n / max * 100}%"></div></div></div>`).join("") : `<div class="muted small">沒有資料</div>`}</div>`;
   };
-  $("#breakdowns").innerHTML = group("預約項目", b => b.service) + group("客人來源", b => (b.source || "").split("｜")[0]) + group("溝通方式", b => b.method) + group("加時", b => b.ext ? `加時 ${b.ext} 分鐘` : "不加時") + group("溝通地點", b => b.channel)
+  $("#breakdowns").innerHTML = group("預約項目", b => b.service) + group("客人來源", b => (b.source || "").split("｜")[0], SOURCES) + group("溝通方式", b => b.method) + group("加時", b => b.ext ? `加時 ${b.ext} 分鐘` : "不加時") + group("溝通地點", b => b.channel)
     + (statRange !== "month" ? group("每月預約", b => b.date.slice(0, 7)) : "");
 }
 
