@@ -4,7 +4,7 @@
 
 // ================= 選項（要改選項就改這裡） =================
 // 客人是怎麼來的（朋友介紹會寫成「朋友介紹｜朋友名字」）
-const SOURCES  = ["Instagram", "Threads", "Luna 老師介紹", "朋友介紹"];
+const SOURCES  = ["Instagram", "Threads", "Luna 老師介紹"];
 const CHANNELS = ["官方LINE", "IG"];
 const METHODS  = ["文字", "語音", "視訊"];
 // 加時（價錢給你參考，總金額請自己填）
@@ -505,9 +505,9 @@ function openBooking(b, preset = {}) {
   const x = b || { date: preset.date || selDay, time: "", status: "booked", source: "", channel: "", method: "", ...preset };
   $("#bkTitle").textContent = b ? "編輯預約" : "新增預約";
   $("#f_customer").value = b ? custName(b) : (preset.customerName || "");
-  $("#f_source").innerHTML = opts(SOURCES, x.source, "請選擇");
-  $("#f_pet").value = x.pet || "";
   const withCur = (list, v) => (v && !list.includes(v) ? [v, ...list] : list); // 網站預約的項目名稱也能顯示
+  $("#f_source").innerHTML = opts(withCur(SOURCES, x.source), x.source, "請選擇");
+  $("#f_pet").value = x.pet || "";
   $("#f_service").innerHTML = opts(withCur(SERVICES, x.service), x.service, "請選擇");
   fillDateSelects(x.date);
   $("#f_time").innerHTML = opts(TIMES, x.time, x.time === "待安排" ? "待安排（請選擇時間）" : "請選擇時間");
@@ -631,7 +631,7 @@ function openCustomer(c) {
   $("#custTitle").textContent = c.name;
   $("#custStats").innerHTML = [["p", "來過次數", s.visits + " 次"], ["b", "預約總數", s.total + " 筆"], ["g", "累計付款", money(s.spent)], ["y", "下次預約", s.next ? `${dLabel(s.next.date)} ${s.next.time}` : "—"]]
     .map(([k, l, v]) => `<div class="sc ${k}"><span>${l}</span><b>${v}</b></div>`).join("");
-  $("#c_name").value = c.name; $("#c_source").innerHTML = opts(SOURCES, c.source, "請選擇");
+  $("#c_name").value = c.name; $("#c_source").innerHTML = opts(c.source && !SOURCES.includes(c.source) ? [c.source, ...SOURCES] : SOURCES, c.source, "請選擇");
   $("#c_contact").value = c.contact || ""; $("#c_note").value = c.note || "";
   $("#custHistory").innerHTML = s.list.length ? [...s.list].reverse().map(b => rowHtml(b, true)).join("") : `<div class="empty">還沒有預約紀錄</div>`;
   const lus = DB.lineUsers.filter(u => u.customerId === c.id);

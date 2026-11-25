@@ -1,6 +1,6 @@
-import { chrome, esc, toast, copyText, lineHref, lineMessageHref } from "./common.js?v=20261126c";
-import { SERVICES, SERVICE_ORDER, money } from "./services.js?v=20261126c";
-import { getSettings, listOpenSlots, createBooking, submitPayment, slotLabel } from "./db.js?v=20261126c";
+import { chrome, esc, toast, copyText, lineHref, lineMessageHref } from "./common.js?v=20261126d";
+import { SERVICES, SERVICE_ORDER, money } from "./services.js?v=20261126d";
+import { getSettings, listOpenSlots, createBooking, submitPayment, slotLabel } from "./db.js?v=20261126d";
 
 chrome("book", { cta: false });
 
@@ -173,6 +173,7 @@ function planGroups(s) {
     <div class="choices">${combo.map(planChoice).join("")}</div></div>`;
 }
 
+const HEARD = ["Instagram", "Threads", "Luna 老師介紹"];
 const heardText = () => state.customer.heard === "朋友介紹" && (state.customer.ref || "").trim()
   ? `朋友介紹｜${state.customer.ref.trim().slice(0, 40)}` : (state.customer.heard || "");
 
@@ -193,7 +194,7 @@ function stepDetails() {
     <h3 style="margin-top:24px">聯絡方式</h3>
     <div class="form-grid">
       <div class="field full"><label for="c_heard">你是怎麼知道 Yura 的？<span class="req">*</span></label>
-        <select id="c_heard"><option value="">請選擇</option><option ${state.customer.heard === "Instagram" ? "selected" : ""}>Instagram</option><option ${state.customer.heard === "Threads" ? "selected" : ""}>Threads</option><option ${state.customer.heard === "Luna 老師介紹" ? "selected" : ""}>Luna 老師介紹</option><option ${state.customer.heard === "朋友介紹" ? "selected" : ""}>朋友介紹</option></select></div>
+        <select id="c_heard"><option value="">請選擇</option><option ${state.customer.heard === "Instagram" ? "selected" : ""}>Instagram</option><option ${state.customer.heard === "Threads" ? "selected" : ""}>Threads</option><option ${state.customer.heard === "Luna 老師介紹" ? "selected" : ""}>Luna 老師介紹</option></select></div>
       <div class="field full ${state.customer.heard === "朋友介紹" ? "" : "hidden"}" id="refBox"><label for="c_ref">介紹你來的朋友是誰？<span class="req">*</span></label>
         <input type="text" id="c_ref" value="${esc(state.customer.ref || "")}" placeholder="朋友的名字或 IG 帳號"></div>
       <div class="field full"><label for="c_email">Email<span class="req">*</span></label><input type="email" id="c_email" value="${esc(state.customer.email || "")}" autocomplete="email" inputmode="email" placeholder="example@gmail.com">
@@ -247,6 +248,7 @@ function stepDetails() {
     if (s.methods && !state.method) problems.push([".choices.inline", "請選擇溝通方式"]);
     for (const f of visibleFields()) if (f.required && !String(state.values[f.key] || "").trim()) problems.push(["#f_" + f.key, `請填寫「${f.label}」`]);
     petList().forEach((p, i) => { if (!p.name.trim()) problems.push(["#pet_" + i, `請填寫寵物 ${i + 1} 的名字`]); });
+    if (!HEARD.includes(state.customer.heard)) state.customer.heard = "";
     if (!state.customer.heard) problems.push(["#c_heard", "請選擇你是怎麼知道 Yura 的"]);
     else if (state.customer.heard === "朋友介紹" && !(state.customer.ref || "").trim()) problems.push(["#c_ref", "請填寫介紹你來的朋友"]);
     const em = (state.customer.email || "").trim();
