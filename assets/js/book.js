@@ -1,6 +1,6 @@
-import { chrome, esc, toast, copyText, lineHref, lineMessageHref } from "./common.js?v=20261126b";
-import { SERVICES, SERVICE_ORDER, money } from "./services.js?v=20261126b";
-import { getSettings, listOpenSlots, createBooking, slotLabel } from "./db.js?v=20261126b";
+import { chrome, esc, toast, copyText, lineHref, lineMessageHref } from "./common.js?v=20261126c";
+import { SERVICES, SERVICE_ORDER, money } from "./services.js?v=20261126c";
+import { getSettings, listOpenSlots, createBooking, submitPayment, slotLabel } from "./db.js?v=20261126c";
 
 chrome("book", { cta: false });
 
@@ -453,7 +453,16 @@ function bankHtml() {
     <div class="pay-row"><span>帳號</span><b class="acct">${esc(b.account)}</b><button class="btn small" id="copyAcct" type="button">複製帳號</button></div>
     <div class="pay-row"><span>金額</span><b class="emph">${money(total())}</b></div>
     ${b.richart ? `<a class="btn primary" href="${esc(b.richart)}" target="_blank" rel="noopener">用 Richart App 轉帳（自動帶入帳號）</a>` : ""}
-    <p class="muted">匯款完成後，請在 LINE 告訴我<b>帳號後五碼</b>，確認後就預約成功 ✨<br>預約時間以我在 LINE 確認為準。</p>
+    <div class="pay-form" id="payForm">
+      <b>匯款完成後，請填寫：</b>
+      <div class="form-grid">
+        <div class="field"><label for="p_name">匯款人姓名<span class="req">*</span></label><input type="text" id="p_name" autocomplete="name" placeholder="帳戶的名字"></div>
+        <div class="field"><label for="p_last5">帳號後五碼<span class="req">*</span></label><input type="text" id="p_last5" inputmode="numeric" maxlength="5" placeholder="例：12345"></div>
+      </div>
+      <button class="btn primary big" id="payDone" type="button">我已匯款，通知 Yura</button>
+    </div>
+    <div class="note hidden" id="payOk">✅ 已經通知 Yura 了，確認收款後就預約成功 ✨</div>
+    <p class="muted">預約時間以我在 LINE 確認為準。</p>
   </div>`;
 }
 
@@ -474,6 +483,18 @@ function stepDone() {
     ${bankHtml()}
     <div class="note">📷 記得準備：${svc().prepare.map(esc).join("；")}</div>
     <div class="row-btns"><a class="btn ghost" href="index.html">回到首頁</a></div>`;
+  const pd = $("#payDone");
+  if (pd) pd.onclick = async () => {
+    const name = $("#p_name").value.trim(), l5 = $("#p_last5").value.trim();
+    if (!name) { $("#p_name").classList.add("invalid"); return toast("請填寫匯款人姓名"); }
+    if (!/^\d{5}$/.test(l5)) { $("#p_last5").classList.add("invalid"); return toast("帳號後五碼請填 5 個數字"); }
+    pd.disabled = true; pd.innerHTML = '<span class="spinner"></span> 送出中…';
+    try { await submitPayment(state.code, name, l5, total()); } catch (e) { console.warn(e); }
+    const msg = `【已匯款】\n寵物：${String(state.values.petName || (state.pets || []).map(p => p.name).join("、") || "")}\n金額：${money(total())}\n匯款人：${name}\n帳號後五碼：${l5}`;
+    $("#payForm").classList.add("hidden"); $("#payOk").classList.remove("hidden");
+    const href = lineMessageHref(settings, msg);
+    $("#payOk").innerHTML = `✅ 已經記錄好了！${href ? `再按這裡<a class="btn line small" href="${href}" target="_blank" rel="noopener">📩 傳到 LINE 告訴 Yura</a>，` : ""}確認收款後就預約成功 ✨`;
+  };
   const ca = $("#copyAcct");
   if (ca) ca.onclick = async () => toast(await copyText(settings.bank.account) ? "帳號已複製 ✨" : "複製失敗，請手動輸入帳號");
   $("#copy").onclick = async () => {

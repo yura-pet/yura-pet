@@ -65,9 +65,9 @@ function pay(b) {
 const CACHE_KEY = "yura_mgr_cache", LOCAL_KEY = "yura_mgr_local";
 const ls = { get(k) { try { return localStorage.getItem(k); } catch { return null; } }, set(k, v) { try { localStorage.setItem(k, v); } catch {} }, del(k) { try { localStorage.removeItem(k); } catch {} } };
 let mode = "cloud"; // cloud（Firebase）| local（還沒設定 Firebase：資料只在這台裝置）
-let DB = { bookings: [], customers: [], arts: [], settings: [], lineUsers: [] };
-const fixDB = () => { DB.bookings ||= []; DB.customers ||= []; DB.arts ||= []; DB.settings ||= []; DB.lineUsers ||= []; };
-const KINDS = ["bookings", "customers", "arts", "settings", "lineUsers"];
+let DB = { bookings: [], customers: [], arts: [], settings: [], lineUsers: [], payments: [] };
+const fixDB = () => { DB.bookings ||= []; DB.customers ||= []; DB.arts ||= []; DB.settings ||= []; DB.lineUsers ||= []; DB.payments ||= []; };
+const KINDS = ["bookings", "customers", "arts", "settings", "lineUsers", "payments"];
 const FBV = "https://www.gstatic.com/firebasejs/10.12.2/";
 let F = null; // { fs, db, auth, au }
 
@@ -268,9 +268,11 @@ function minutesOf(b) {
 }
 const hasArt = b => /似顏繪/.test(b.service || "");
 const durTag = b => { const n = minutesOf(b); return [n ? `⏱ ${n} 分鐘` : "", hasArt(b) ? "🎨 似顏繪" : ""].filter(Boolean).join("・"); };
+const payOf = b => DB.payments.find(x => x.id === b.id);
+const payNote = b => { const r = payOf(b); return r ? `💰 客人說已匯款：${r.payer}・後五碼 ${r.last5}` : ""; };
 function bookingLine(b) {
   const p = pay(b);
-  return [durTag(b), b.photoCount ? `📷 ${b.photoCount}` : "", b.service, b.ext ? `加時 ${b.ext} 分` : "", b.method, b.channel && "於" + b.channel].filter(Boolean).join("・") + ` <span class="badge ${p.st}">${p.label}</span>` +
+  return [durTag(b), payOf(b) && p.st !== "paid" ? `💰 已匯款待確認（後五碼 ${payOf(b).last5}）` : "", b.photoCount ? `📷 ${b.photoCount}` : "", b.service, b.ext ? `加時 ${b.ext} 分` : "", b.method, b.channel && "於" + b.channel].filter(Boolean).join("・") + ` <span class="badge ${p.st}">${p.label}</span>` +
     (b.status !== "booked" ? ` <span class="badge st-${b.status}">${STATUS[b.status]}</span>` : "");
 }
 
@@ -519,6 +521,7 @@ function openBooking(b, preset = {}) {
   $("#f_depositPaid").checked = !!x.depositPaid;
   $("#f_balancePaid").checked = !!x.balancePaid;
   $("#f_note").value = x.note || "";
+  $("#payInfo").textContent = b ? payNote(b) : ""; $("#payInfo").classList.toggle("hidden", !(b && payOf(b)));
   loadPhotos(b ? b.id : null);
   $("#bkDel").classList.toggle("hidden", !b);
   bkDlg.dataset.paidAt = x.paidAt || "";

@@ -291,3 +291,6 @@ a.plan-row:hover{background:rgba(255,240,231,.7)}
 .pay-row span{color:var(--muted);min-width:40px}
 .pay-row .acct{font-size:20px;letter-spacing:.04em;font-variant-numeric:tabular-nums}
 .pay-box .muted{margin:0}
+.pay-form{display:grid;gap:4px;padding-top:6px;border-top:1px dashed var(--line)}
+.pay-form .field{margin-top:6px}
+#payOk .btn{margin:0 4px}

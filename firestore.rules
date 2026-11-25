@@ -54,5 +54,14 @@ service cloud.firestore {
     match /photos/{id} { allow read, write: if isAdmin(); }
     match /lineUsers/{id} { allow read, write: if isAdmin(); }
     match /lineMessages/{id} { allow read, write: if isAdmin(); }
+    // 客人填的匯款資料（匯款人、帳號後五碼），只能新增一次，只有你看得到
+    match /payments/{id} {
+      allow read, update, delete: if isAdmin();
+      allow create: if request.resource.data.keys().hasOnly(['bookingId', 'payer', 'last5', 'amount', 'createdAt'])
+        && request.resource.data.bookingId == id
+        && request.resource.data.last5.matches('^[0-9]{5}$')
+        && maxLen(request.resource.data.payer, 50)
+        && exists(/databases/$(database)/documents/bookings/$(id));
+    }
   }
 }

@@ -1,7 +1,7 @@
 // 資料存取層
 // - 有填 Firebase 設定：可預約時段照「Yura 預約管理」後台的設定，客人送出的預約會直接存進後台
 // - 沒填：照 config.js 的固定時段，預約只透過 LINE 傳送
-import { CONFIG } from "./config.js?v=20261126b";
+import { CONFIG } from "./config.js?v=20261126c";
 
 export const isLive = !!(CONFIG.firebase && CONFIG.firebase.apiKey && CONFIG.firebase.projectId);
 export const isDemo = !isLive;
@@ -134,5 +134,15 @@ export async function createBooking(data) {
     if (pick) { const t = await fs.getDoc(fs.doc(db, "taken", booking.takenKey)).catch(() => null); if (t && t.exists()) throw new Error("SLOT_TAKEN"); }
     throw e;
   }
-  return code;
+  return ref.id; // 給「我已匯款」用
+}
+
+// ---------- 公開：客人填寫匯款資料 ----------
+export async function submitPayment(bookingId, payer, last5, amount) {
+  if (!isLive || !bookingId) return false;
+  const { fs, db } = await fb();
+  await fs.setDoc(fs.doc(db, "payments", bookingId), {
+    bookingId, payer: String(payer).trim().slice(0, 50), last5: String(last5).trim(), amount: Number(amount) || 0, createdAt: Date.now()
+  });
+  return true;
 }
