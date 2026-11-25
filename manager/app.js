@@ -3,7 +3,8 @@
 "use strict";
 
 // ================= 選項（要改選項就改這裡） =================
-const SOURCES  = ["官方LINE", "IG", "介紹", "Instagram", "Threads", "朋友介紹", "Google 搜尋", "Facebook", "LINE", "網站預約", "其他"];
+// 客人是怎麼來的（朋友介紹會寫成「朋友介紹｜朋友名字」）
+const SOURCES  = ["Instagram", "Threads", "Luna 老師介紹", "朋友介紹"];
 const CHANNELS = ["官方LINE", "IG"];
 const METHODS  = ["文字", "語音", "視訊"];
 // 加時（價錢給你參考，總金額請自己填）
@@ -399,7 +400,7 @@ function renderStats() {
     const max = Math.max(1, ...arr.map(x => x[1].n));
     return `<div class="bd"><h4>${title}</h4>${arr.length ? arr.map(([k, v]) => `<div class="bar"><span>${esc(k)}</span><span class="v">${v.n} 筆・${money(v.amt)}</span><div class="tr"><div class="fill" style="width:${v.n / max * 100}%"></div></div></div>`).join("") : `<div class="muted small">沒有資料</div>`}</div>`;
   };
-  $("#breakdowns").innerHTML = group("預約項目", b => b.service) + group("客人來源", b => b.source) + group("溝通方式", b => b.method) + group("加時", b => b.ext ? `加時 ${b.ext} 分鐘` : "不加時") + group("溝通地點", b => b.channel)
+  $("#breakdowns").innerHTML = group("預約項目", b => b.service) + group("客人來源", b => (b.source || "").split("｜")[0]) + group("溝通方式", b => b.method) + group("加時", b => b.ext ? `加時 ${b.ext} 分鐘` : "不加時") + group("溝通地點", b => b.channel)
     + (statRange !== "month" ? group("每月預約", b => b.date.slice(0, 7)) : "");
 }
 
