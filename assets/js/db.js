@@ -1,7 +1,7 @@
 // 資料存取層
 // - 有填 Firebase 設定：可預約時段照「Yura 預約管理」後台的設定，客人送出的預約會直接存進後台
 // - 沒填：照 config.js 的固定時段，預約只透過 LINE 傳送
-import { CONFIG } from "./config.js?v=20261126e";
+import { CONFIG } from "./config.js?v=20261126f";
 
 export const isLive = !!(CONFIG.firebase && CONFIG.firebase.apiKey && CONFIG.firebase.projectId);
 export const isDemo = !isLive;

@@ -1,6 +1,6 @@
-import { chrome, esc, toast, copyText, lineHref, lineMessageHref } from "./common.js?v=20261126e";
-import { SERVICES, SERVICE_ORDER, money } from "./services.js?v=20261126e";
-import { getSettings, listOpenSlots, createBooking, submitPayment, slotLabel } from "./db.js?v=20261126e";
+import { chrome, esc, toast, copyText, lineHref, lineMessageHref } from "./common.js?v=20261126f";
+import { SERVICES, SERVICE_ORDER, money } from "./services.js?v=20261126f";
+import { getSettings, listOpenSlots, createBooking, submitPayment, slotLabel } from "./db.js?v=20261126f";
 
 chrome("book", { cta: false });
 
@@ -277,22 +277,15 @@ async function stepSlots() {
   slots.forEach(x => (byDay[x.date] ||= []).push(x));
   const required = s.slot === "required";
   const none = slots.length === 0;
-  if (none) state.noFit = true;
+  state.noFit = false; state.customTimes = ""; // 只能選後台開放的時段
 
   stage.innerHTML = `
     ${s.slotHint ? `<div class="note">${esc(s.slotHint)}</div>` : ""}
-    ${none ? `<div class="note">目前沒有開放的線上時段，請直接提供 2 個你可以配合的時間，我會回覆可以安排的時段。</div>` : `
+    ${none ? `<div class="note">目前的時段都約滿了，請到 LINE 詢問下一次開放的時間 🙏</div>` : `
       <p><b>先點日期，再選時段。</b>第一個選的是第一志願，可以再選一個當第二志願（可不選）。實際時間以我在 LINE 回覆確認為準。</p>
       <div class="cal" id="cal"></div>
       <div id="dayTimes"></div>
-      <div id="pickSum"></div>
-      <label class="choice" style="margin-top:16px"><input type="checkbox" id="noFit" ${state.noFit ? "checked" : ""}>
-        <span class="c-main"><span class="c-t">以上時間都不適合，我想自己提供時間</span></span></label>`}
-    <div class="field ${state.noFit ? "" : "hidden"}" id="customBox">
-      <label for="customTimes">可配合的時段（請提供 2 個）${required ? '<span class="req">*</span>' : ""}</label>
-      <textarea id="customTimes" placeholder="例：&#10;① 11/25（三）晚上 8 點後&#10;② 11/28（六）下午 2～5 點">${esc(state.customTimes)}</textarea>
-      <div class="hint">平日、假日都可以。</div>
-    </div>
+      <div id="pickSum"></div>`}
     ${navBtns(2)}`;
 
   // ---- 日曆 ----
@@ -350,17 +343,9 @@ async function stepSlots() {
   };
   const drawAll = () => { if (none) return; drawCal(); drawTimes(); drawSum(); };
   drawAll();
-  const nf = $("#noFit");
-  if (nf) nf.onchange = () => { state.noFit = nf.checked; $("#customBox").classList.toggle("hidden", !nf.checked); saveDraft(); };
-  $("#customTimes").oninput = e => { state.customTimes = e.target.value; e.target.classList.remove("invalid"); saveDraft(); };
 
   $("#next").onclick = () => {
-    const custom = state.noFit && state.customTimes.trim();
-    if (required && !state.picks.length && !custom) {
-      if (state.noFit) { $("#customTimes").classList.add("invalid"); toast("請填寫可以配合的時段"); }
-      else toast("請選擇一個時段，或勾選「自己提供時間」");
-      return;
-    }
+    if (!state.picks.length) return toast(none ? "目前時段都約滿了，請到 LINE 詢問 🙏" : "請先點日期，再選一個時段");
     go(4);
   };
   bindBack();
