@@ -366,7 +366,6 @@ function rows() {
   r.push(["Email", (state.customer.email || "").trim()]);
   if (hasSlotStep()) {
     const labels = state.picks.map((id, i) => `${i === 0 ? "第一志願" : "第二志願"}：${slotLabel(slots.find(x => x.id === id))}`);
-    if (state.noFit && state.customTimes.trim()) labels.push("自己提供：\n" + state.customTimes.trim());
     r.push(["希望時段", labels.join("\n") || "請 Yura 盡快安排"]);
   }
   return r;
