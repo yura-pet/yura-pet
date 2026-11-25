@@ -52,5 +52,7 @@ service cloud.firestore {
     match /customers/{id} { allow read, write: if isAdmin(); }
     match /arts/{id} { allow read, write: if isAdmin(); }
     match /photos/{id} { allow read, write: if isAdmin(); }
+    match /lineUsers/{id} { allow read, write: if isAdmin(); }
+    match /lineMessages/{id} { allow read, write: if isAdmin(); }
   }
 }

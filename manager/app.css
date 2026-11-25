@@ -269,3 +269,12 @@ input[type=search]{margin-bottom:6px}
 .photo-add{align-self:flex-start;margin-top:4px}
 .photo-dlg img{display:block;max-width:100%;max-height:70vh;margin:0 auto;background:#000}
 .tag.ph{background:var(--purple-soft);color:var(--purple-deep)}
+
+/* ---- LINE 對話 ---- */
+.chat{display:grid;gap:8px;max-height:60vh;overflow:auto;padding:4px}
+.chat .day-sep{text-align:center;font-size:12px;color:var(--muted);margin-top:6px}
+.bubble{max-width:85%;justify-self:start;background:#e8f7ec;border:1px solid rgba(79,154,120,.25);border-radius:4px 16px 16px 16px;padding:8px 12px;font-size:15px;white-space:pre-wrap;word-break:break-word}
+.bubble small{display:block;font-size:11px;color:var(--muted);margin-top:2px}
+.bubble img{display:block;max-width:220px;max-height:220px;border-radius:10px;cursor:pointer}
+.bubble a{font-size:12px}
+.lrow-pic{width:44px;height:44px;border-radius:50%;object-fit:cover;background:var(--blue-soft)}

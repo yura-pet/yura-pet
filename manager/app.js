@@ -65,9 +65,9 @@ function pay(b) {
 const CACHE_KEY = "yura_mgr_cache", LOCAL_KEY = "yura_mgr_local";
 const ls = { get(k) { try { return localStorage.getItem(k); } catch { return null; } }, set(k, v) { try { localStorage.setItem(k, v); } catch {} }, del(k) { try { localStorage.removeItem(k); } catch {} } };
 let mode = "cloud"; // cloud（Firebase）| local（還沒設定 Firebase：資料只在這台裝置）
-let DB = { bookings: [], customers: [], arts: [], settings: [] };
-const fixDB = () => { DB.bookings ||= []; DB.customers ||= []; DB.arts ||= []; DB.settings ||= []; };
-const KINDS = ["bookings", "customers", "arts", "settings"];
+let DB = { bookings: [], customers: [], arts: [], settings: [], lineUsers: [] };
+const fixDB = () => { DB.bookings ||= []; DB.customers ||= []; DB.arts ||= []; DB.settings ||= []; DB.lineUsers ||= []; };
+const KINDS = ["bookings", "customers", "arts", "settings", "lineUsers"];
 const FBV = "https://www.gstatic.com/firebasejs/10.12.2/";
 let F = null; // { fs, db, auth, au }
 
@@ -104,6 +104,7 @@ async function loadAll() {
   const snaps = await Promise.all(KINDS.map(k => fs.getDocs(fs.collection(db, k))));
   KINDS.forEach((k, i) => DB[k] = snaps[i].docs.map(d => ({ ...d.data(), id: d.id })));
   await linkWebBookings();
+  await linkLineUsers();
   if (!DB.settings.length) { await put("settings", { ...DEFAULT_CFG }); } // 第一次登入：把網站目前的時段存進後台
   persistLocal(); render();
   setSync("已同步 " + nowHM());
@@ -254,6 +255,7 @@ function render() {
   renderPending();
   renderDayCtl();
   if (tab === "slots") renderSlots();
+  renderLineList();
   $("#dl_customers").innerHTML = DB.customers.map(c => `<option value="${esc(c.name)}">`).join("");
 }
 
@@ -466,7 +468,8 @@ $("#photoInput").onchange = async e => {
 let phOpen = null;
 $("#photoList").onclick = e => { const im = e.target.closest("[data-ph]"); if (!im) return; phOpen = im.dataset.ph; $("#photoBig").src = im.src; $("#photoDlg").showModal(); };
 $("#photoDel").onclick = async () => {
-  if (!phOpen || !confirm("刪除這張照片？")) return;
+  if (!phOpen) return toast("LINE 的照片不能在這裡刪除");
+  if (!confirm("刪除這張照片？")) return;
   const i = +phOpen.slice(1);
   if (phOpen[0] === "p") photoState.pending.splice(i, 1);
   else { const ph = photoState.list[i];
@@ -628,6 +631,9 @@ function openCustomer(c) {
   $("#c_name").value = c.name; $("#c_source").innerHTML = opts(SOURCES, c.source, "請選擇");
   $("#c_contact").value = c.contact || ""; $("#c_note").value = c.note || "";
   $("#custHistory").innerHTML = s.list.length ? [...s.list].reverse().map(b => rowHtml(b, true)).join("") : `<div class="empty">還沒有預約紀錄</div>`;
+  const lus = DB.lineUsers.filter(u => u.customerId === c.id);
+  $("#custLine").innerHTML = lus.length ? `<div class="chat" id="custChat"><div class="empty">讀取中…</div></div>` : `<div class="empty">還沒有對應的 LINE 帳號（到「💬 LINE」點客人就能對應）</div>`;
+  if (lus.length) loadChat(lus.map(u => u.id)).then(html => { const el = $("#custChat"); if (el) el.innerHTML = html; });
   custDlg.showModal();
 }
 $("#custForm").onsubmit = async e => {
@@ -749,6 +755,76 @@ function renderPending() {
     c.textContent = list.length; c.classList.toggle("hidden", !list.length); }
 }
 
+// ================= LINE 對話 =================
+async function linkLineUsers() {
+  for (const u of DB.lineUsers.filter(x => !x.customerId && x.email)) {
+    const c = DB.customers.find(x => (x.contact || "").trim().toLowerCase() === u.email);
+    if (c) await put("lineUsers", { ...u, customerId: c.id });
+  }
+}
+function fmtTs(ts) { const d = new Date(+ts); return `${d.getMonth() + 1}/${d.getDate()} ${pad(d.getHours())}:${pad(d.getMinutes())}`; }
+async function loadChat(userIds) {
+  if (mode !== "cloud") return `<div class="empty">本機模式沒有 LINE 訊息</div>`;
+  const { fs, db } = F;
+  let msgs = [], photos = {};
+  for (const uid of userIds) {
+    const [m, p] = await Promise.all([
+      fs.getDocs(fs.query(fs.collection(db, "lineMessages"), fs.where("userId", "==", uid))),
+      fs.getDocs(fs.query(fs.collection(db, "photos"), fs.where("lineUserId", "==", uid)))
+    ]);
+    msgs.push(...m.docs.map(d => ({ ...d.data(), id: d.id })));
+    p.docs.forEach(d => photos[d.id] = d.data().data);
+  }
+  msgs.sort((a, b) => (+a.ts) - (+b.ts));
+  if (!msgs.length) return `<div class="empty">還沒有訊息</div>`;
+  let lastDay = "";
+  return msgs.map(m => {
+    const day = fmtTs(m.ts).split(" ")[0], sep = day !== lastDay ? `<div class="day-sep">${day}</div>` : ""; lastDay = day;
+    const body = m.photoId && photos[m.photoId] ? `<img src="${photos[m.photoId]}" data-lineimg alt="客人傳的照片">`
+      : esc(m.text || "");
+    return `${sep}<div class="bubble">${body}${m.driveUrl ? `<a href="${esc(m.driveUrl)}" target="_blank" rel="noopener">看原圖（雲端硬碟）</a>` : ""}<small>${fmtTs(m.ts).split(" ")[1]}</small></div>`;
+  }).join("");
+}
+function renderLineList() {
+  const cnt = DB.lineUsers.filter(u => u.id !== "_test" && !u.customerId).length;
+  const lc = $("#lineCnt"); if (lc) { lc.textContent = cnt; lc.classList.toggle("hidden", !cnt); }
+  if (tab !== "line") return;
+  const q = ($("#lineSearch").value || "").trim().toLowerCase();
+  const list = DB.lineUsers.filter(u => !q || [u.name, u.lastText, u.email].join(" ").toLowerCase().includes(q))
+    .sort((a, b) => (+b.lastAt || 0) - (+a.lastAt || 0));
+  $("#lineList").innerHTML = list.length ? list.map(u => {
+    const c = DB.customers.find(x => x.id === u.customerId);
+    return `<div class="crow" data-lineuser="${esc(u.id)}">
+      ${u.picture ? `<img class="lrow-pic" src="${esc(u.picture)}" alt="">` : `<div class="avatar">${esc((u.name || "?").slice(0, 1))}</div>`}
+      <div class="cn"><b>${esc(u.name || "（沒有名稱）")}</b>${c ? `<span class="tag">👤 ${esc(c.name)}</span>` : `<span class="tag">還沒對應客人</span>`}
+        <div>${esc(u.lastText || "")}</div></div>
+      <div class="visits"><span>${u.lastAt ? fmtTs(u.lastAt) : ""}</span></div></div>`;
+  }).join("") : `<div class="empty">還沒有 LINE 訊息。設定好 LINE 連線後，客人傳的訊息會出現在這裡。</div>`;
+}
+let lineOpen = null;
+async function openLine(u) {
+  lineOpen = u;
+  $("#lineTitle").textContent = `💬 ${u.name || "LINE 客人"}`;
+  $("#lineCust").innerHTML = `<option value="">（還沒對應）</option>` + [...DB.customers].sort((a, b) => a.name.localeCompare(b.name, "zh-Hant"))
+    .map(c => `<option value="${c.id}" ${c.id === u.customerId ? "selected" : ""}>${esc(c.name)}${c.contact ? "（" + esc(c.contact) + "）" : ""}</option>`).join("") + `<option value="__new">＋ 用這個 LINE 名稱建立新客人</option>`;
+  $("#lineMsgs").innerHTML = `<div class="empty">讀取中…</div>`;
+  $("#lineDlg").showModal();
+  $("#lineMsgs").innerHTML = await loadChat([u.id]);
+}
+$("#lineCust").onchange = async e => {
+  let cid = e.target.value;
+  if (cid === "__new") {
+    const c = { id: uid(), name: lineOpen.name || "LINE 客人", source: "", contact: lineOpen.email || "", note: "", createdAt: Date.now() };
+    await put("customers", c); cid = c.id;
+    $("#lineCust").insertAdjacentHTML("afterbegin", `<option value="${c.id}">${esc(c.name)}</option>`); $("#lineCust").value = c.id;
+  }
+  lineOpen = { ...lineOpen, customerId: cid };
+  await put("lineUsers", lineOpen); toast(cid ? "已對應客人 ✨" : "已取消對應");
+};
+document.addEventListener("click", e => { const im = e.target.closest("[data-lineimg]"); if (im) { phOpen = null; $("#photoBig").src = im.src; $("#photoDlg").showModal(); } });
+$("#lineSearch").oninput = renderLineList;
+$("#lineRefresh").onclick = () => loadAll().catch(err => toast(err.message));
+
 // ================= 似顏繪排程 =================
 function dueInfo(a) {
   if (!a.due) return { text: "完成日未定", cls: "" };
@@ -839,6 +915,7 @@ document.addEventListener("click", e => {
   const ac = e.target.closest("[data-art]"); if (ac) { const a = DB.arts.find(x => x.id === ac.dataset.art); if (a) openArt(a); return; }
   const pa = e.target.closest("[data-payall]"); if (pa) { e.stopPropagation(); return quickPayAll(pa.dataset.payall); }
   const bk = e.target.closest("[data-bk]"); if (bk) { const b = DB.bookings.find(x => x.id === bk.dataset.bk); if (b) { if (custDlg.open) custDlg.close(); openBooking(b); } return; }
+  const lu = e.target.closest("[data-lineuser]"); if (lu) { const u = DB.lineUsers.find(x => x.id === lu.dataset.lineuser); if (u) openLine(u); return; }
   const cu = e.target.closest("[data-cust]"); if (cu) { const c = DB.customers.find(x => x.id === cu.dataset.cust); if (c) openCustomer(c); return; }
   const gd = e.target.closest("[data-goday]");
   if (gd) { selDay = gd.dataset.goday; const dd = parseYmd(selDay); view = new Date(dd.getFullYear(), dd.getMonth(), 1); switchTab("day"); $("#tab-day").scrollIntoView({ behavior: "smooth" }); return; }
@@ -863,7 +940,7 @@ $("#goToday").onclick = () => { const d = new Date(); view = new Date(d.getFullY
 function switchTab(t) {
   tab = t;
   document.querySelectorAll(".tab").forEach(x => x.classList.toggle("on", x.dataset.tab === t));
-  ["day", "customers", "arts", "slots", "stats"].forEach(k => $("#tab-" + k).classList.toggle("hidden", k !== t));
+  ["day", "customers", "arts", "line", "slots", "stats"].forEach(k => $("#tab-" + k).classList.toggle("hidden", k !== t));
   if (t === "stats") fillStatMonth();
   render();
 }
