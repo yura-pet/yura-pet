@@ -1,6 +1,6 @@
-import { chrome, esc, toast, copyText, lineHref, lineMessageHref } from "./common.js?v=20261126i";
-import { SERVICES, SERVICE_ORDER, money } from "./services.js?v=20261126i";
-import { getSettings, listOpenSlots, createBooking, submitPayment, slotLabel } from "./db.js?v=20261126i";
+import { chrome, esc, toast, copyText, lineHref, lineMessageHref } from "./common.js?v=20261126j";
+import { SERVICES, SERVICE_ORDER, money } from "./services.js?v=20261126j";
+import { getSettings, listOpenSlots, createBooking, submitPayment, slotLabel } from "./db.js?v=20261126j";
 
 chrome("book", { cta: false });
 
@@ -112,7 +112,7 @@ function stepMust() {
       <span class="c-main"><span class="c-t">${esc(t)}</span></span></label>`).join("")}
     </div>
     <div class="note">想看完整內容（溝通方式、常見問題、注意事項）：
-      <a href="${s.detailUrl}" target="_blank">${esc(s.name)}${s.key === "illustration" ? "作品" : "詳細說明書"} ↗</a>
+      <a href="${s.detailUrl}" target="_blank">${esc(s.name)}${s.key === "illustration" ? "作品" : s.key === "search" ? "事前說明書" : "詳細說明書"} ↗</a>
     </div>
     <div class="row-btns" style="justify-content:flex-start"><button type="button" class="btn small ghost" id="allOk">全部都看過了，全選</button></div>
     ${navBtns(0, "我了解了，下一步")}`;
