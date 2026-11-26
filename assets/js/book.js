@@ -1,6 +1,6 @@
-import { chrome, esc, toast, copyText, lineHref, lineMessageHref } from "./common.js?v=20261126f";
-import { SERVICES, SERVICE_ORDER, money } from "./services.js?v=20261126f";
-import { getSettings, listOpenSlots, createBooking, submitPayment, slotLabel } from "./db.js?v=20261126f";
+import { chrome, esc, toast, copyText, lineHref, lineMessageHref } from "./common.js?v=20261126g";
+import { SERVICES, SERVICE_ORDER, money } from "./services.js?v=20261126g";
+import { getSettings, listOpenSlots, createBooking, submitPayment, slotLabel } from "./db.js?v=20261126g";
 
 chrome("book", { cta: false });
 
@@ -272,7 +272,7 @@ async function stepSlots() {
     try { slots = await listOpenSlots(); } catch (e) { console.warn(e); slots = []; }
   }
   // 移除已經不存在的選擇
-  state.picks = state.picks.filter(id => slots.some(x => x.id === id && x.status !== "full"));
+  state.picks = state.picks.filter(id => slots.some(x => x.id === id && x.status !== "full")).slice(0, 1);
   const byDay = {};
   slots.forEach(x => (byDay[x.date] ||= []).push(x));
   const required = s.slot === "required";
@@ -282,7 +282,7 @@ async function stepSlots() {
   stage.innerHTML = `
     ${s.slotHint ? `<div class="note">${esc(s.slotHint)}</div>` : ""}
     ${none ? `<div class="note">目前的時段都約滿了，請到 LINE 詢問下一次開放的時間 🙏</div>` : `
-      <p><b>先點日期，再選時段。</b>第一個選的是第一志願，可以再選一個當第二志願（可不選）。實際時間以我在 LINE 回覆確認為準。</p>
+      <p><b>先點日期，再選時段。</b></p>
       <div class="cal" id="cal"></div>
       <div id="dayTimes"></div>
       <div id="pickSum"></div>`}
@@ -330,15 +330,15 @@ async function stepSlots() {
     $("#dayTimes").innerHTML = list.length ? `<div class="slot-day"><h4>${esc(slotLabel(list[0]).split("）")[0])}）${list.some(x => x.status !== "full") ? "可以選的時段" : "已全部約滿"}</h4>
       <div class="slot-list">${list.map(x => { const i = state.picks.indexOf(x.id);
         if (x.status === "full") return `<button type="button" class="slot full" disabled>${esc(x.time)}<span class="tag">已約滿</span></button>`;
-        return `<button type="button" class="slot ${i === 0 ? "p1" : i === 1 ? "p2" : ""}" data-id="${x.id}">${esc(x.time)}${i >= 0 ? `<span class="tag">${i === 0 ? "第一志願" : "第二志願"}</span>` : ""}</button>`; }).join("")}</div></div>` : "";
+        return `<button type="button" class="slot ${i === 0 ? "p1" : ""}" data-id="${x.id}">${esc(x.time)}</button>`; }).join("")}</div></div>` : "";
     $("#dayTimes").querySelectorAll(".slot:not(.full)").forEach(bt => bt.onclick = () => {
       const id = bt.dataset.id, i = state.picks.indexOf(id);
-      if (i >= 0) state.picks.splice(i, 1); else if (state.picks.length < 2) state.picks.push(id); else state.picks[1] = id;
+      state.picks = i >= 0 ? [] : [id];
       saveDraft(); drawAll();
     });
   };
   const drawSum = () => {
-    $("#pickSum").innerHTML = state.picks.length ? `<div class="pick-sum">${state.picks.map((id, i) => `<div><span class="pk ${i ? "p2" : "p1"}">${i ? "第二志願" : "第一志願"}</span>${esc(slotLabel(slots.find(x => x.id === id)))}<button type="button" class="pk-x" data-rm="${id}" aria-label="取消">✕</button></div>`).join("")}</div>` : "";
+    $("#pickSum").innerHTML = state.picks.length ? `<div class="pick-sum">${state.picks.map((id, i) => `<div><span class="pk p1">你選的時間</span>${esc(slotLabel(slots.find(x => x.id === id)))}<button type="button" class="pk-x" data-rm="${id}" aria-label="取消">✕</button></div>`).join("")}</div>` : "";
     $("#pickSum").querySelectorAll("[data-rm]").forEach(bt => bt.onclick = () => { state.picks = state.picks.filter(x => x !== bt.dataset.rm); saveDraft(); drawAll(); });
   };
   const drawAll = () => { if (none) return; drawCal(); drawTimes(); drawSum(); };
@@ -365,8 +365,7 @@ function rows() {
   if (state.customer.heard) r.push(["怎麼知道 Yura", heardText()]);
   r.push(["Email", (state.customer.email || "").trim()]);
   if (hasSlotStep()) {
-    const labels = state.picks.map((id, i) => `${i === 0 ? "第一志願" : "第二志願"}：${slotLabel(slots.find(x => x.id === id))}`);
-    r.push(["希望時段", labels.join("\n") || "請 Yura 盡快安排"]);
+    r.push(["預約時段", state.picks.slice(0, 1).map(id => slotLabel(slots.find(x => x.id === id))).join("")]);
   }
   return r;
 }
@@ -378,7 +377,7 @@ function stepConfirm() {
     <div class="summary">${r.map(([k, v]) => `<div class="row"><div class="k">${esc(k)}</div><div class="v">${esc(v)}</div></div>`).join("")}
       <div class="row total"><div class="k">預估金額</div><div class="v">${money(total())}</div></div></div>
     <label class="choice" style="margin-top:16px"><input type="checkbox" id="final" ${state.final ? "checked" : ""}>
-      <span class="c-main"><span class="c-t" style="font-weight:400">我是毛孩的主要照顧者，也了解「時間確認後完成全額付款，才算預約成功」。</span></span></label>
+      <span class="c-main"><span class="c-t" style="font-weight:400">我是毛孩的主要照顧者，也了解「完成全額付款，才算預約成功」。</span></span></label>
     ${navBtns(hasSlotStep() ? 3 : 2, "送出預約", "submit")}`;
   const sub = $("#submit");
   const f = $("#final");
@@ -446,7 +445,6 @@ function bankHtml() {
       <button class="btn primary big" id="payDone" type="button">我已匯款，通知 Yura</button>
     </div>
     <div class="note hidden" id="payOk">✅ 已經通知 Yura 了，確認收款後就預約成功 ✨</div>
-    <p class="muted">預約時間以我在 LINE 確認為準。</p>
   </div>`;
 }
 
