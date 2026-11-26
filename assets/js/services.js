@@ -130,7 +130,7 @@ export const SERVICES = {
     short: "毛孩走失、失聯，或想確認牠現在的狀態與方向。",
     detailUrl: "guide-search.html",
     slot: "optional",
-    slotHint: "找寵通常比較急，可以不選時段，我會盡快安排；生死測算統一在晚上 9:00 打聖杯。",
+    slotHint: "生死測算統一在晚上 9:00 打聖杯。",
     planNote: "💡 找寵前，建議先確認毛孩的生死。知道生死之後，接下來會想做的事常常不一樣：有人會選擇放下，也有人反而更想把牠找回來。所以第一次來，多數人會先從生死測算開始。",
     plans: withBundles([
       { key: "qimen", label: "奇門遁甲找寵方案（主推）", meta: "三項一起進行", price: 5000,
