@@ -1,5 +1,5 @@
-import { isDemo } from "./db.js?v=20261126p";
-import { CONFIG } from "./config.js?v=20261126p";
+import { isDemo } from "./db.js?v=20261126q";
+import { CONFIG } from "./config.js?v=20261126q";
 
 export const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
